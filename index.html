@@ -1,675 +1,286 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="h-full">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Sistema de Gestão de Rotas e Fechamentos</title>
+  <title>SystemDiaria - Fechamento Operacional</title>
   
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Font Awesome 6 Icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  
-  <!-- Fonte Google: Inter -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-          }
-        }
-      }
-    }
-  </script>
-
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
   <style>
-    /* Suporte a toque e scroll suave */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
-    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
+    body { font-family: 'Plus Jakarta Sans', sans-serif; }
+    input:focus, select:focus { outline: none; border-color: #2563eb; ring: 2px #93c5fd; }
     @media screen and (max-width: 768px) {
       input, select, textarea { font-size: 16px !important; }
     }
-
-    @media print {
-      body * { visibility: hidden; }
-      #comprovante-print-area, #comprovante-print-area * { visibility: visible; }
-      #comprovante-print-area {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 24px !important;
-        background: white !important;
-        color: black !important;
-      }
-      .no-print { display: none !important; }
-    }
   </style>
 </head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col pb-16 md:pb-6">
 
-<body class="bg-slate-100 text-slate-800 flex flex-col min-h-screen font-sans selection:bg-blue-600 selection:text-white pb-20 md:pb-6">
+  <!-- TELA DE LOGIN (Exibida quando não autenticado) -->
+  <div id="auth-screen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
+      <div class="text-center space-y-1">
+        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto text-xl mb-2">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2 class="text-xl font-black text-slate-900">Acesso Restrito</h2>
+        <p class="text-xs text-slate-500">Informe suas credenciais para visualizar seus lançamentos.</p>
+      </div>
 
-  <!-- Header Superior -->
-  <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
-    <div class="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-      
-      <!-- Logotipo & Título -->
-      <div class="flex items-center gap-3">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
-          <i class="fa-solid fa-route text-lg"></i>
+      <form id="form-login" class="space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">E-mail</label>
+          <input type="email" id="login-email" placeholder="seu-email@sistema.com" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm">
         </div>
         <div>
-          <span class="text-[10px] font-extrabold uppercase tracking-wider text-blue-400 block leading-tight">PayFlow Operacional</span>
-          <h1 class="text-base sm:text-lg font-black tracking-tight leading-tight">Gestão de Rotas & Diárias</h1>
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Senha</label>
+          <input type="password" id="login-senha" placeholder="••••••••" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm">
         </div>
-      </div>
-
-      <!-- Abas Desktop -->
-      <nav id="desktop-nav" class="hidden md:flex items-center gap-1 bg-slate-800/90 p-1.5 rounded-xl border border-slate-700">
-        <button onclick="trocarAba('lancamento')" id="d-tab-lancamento" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-blue-600 text-white shadow-sm">
-          <i class="fa-solid fa-plus-circle"></i> Lançamento
+        <button type="submit" id="btn-login" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition shadow flex items-center justify-center gap-2">
+          <i class="fa-solid fa-right-to-bracket"></i> Entrar no Sistema
         </button>
-        <button onclick="trocarAba('cadastros')" id="d-tab-cadastros" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 text-slate-300 hover:text-white">
-          <i class="fa-solid fa-address-book"></i> Cadastros
-        </button>
-        <button onclick="trocarAba('fechamentos')" id="d-tab-fechamentos" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 text-slate-300 hover:text-white">
-          <i class="fa-solid fa-sack-dollar text-amber-400"></i> Fechamentos
-        </button>
-        <button onclick="trocarAba('historico')" id="d-tab-historico" class="tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 text-slate-300 hover:text-white">
-          <i class="fa-solid fa-list-check"></i> Histórico
-          <span id="badge-total-rotas" class="px-1.5 py-0.5 rounded-full bg-slate-700 text-[10px] font-bold">0</span>
-        </button>
-      </nav>
+      </form>
 
-      <!-- Status Nuvem & Seletor de Perfil -->
-      <div class="flex items-center gap-2.5">
-        <!-- Indicador de Status Firebase -->
-        <div id="cloud-pill" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-semibold">
-          <span id="cloud-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
-          <span id="cloud-txt" class="hidden sm:inline text-slate-300 text-[11px]">Conectando...</span>
-        </div>
-
-        <!-- Seletor Rápido de Usuário (Admin vs Prestador) -->
-        <div class="relative">
-          <button onclick="toggleMenuUsuario()" class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-semibold text-slate-200 transition">
-            <i class="fa-solid fa-user-shield text-blue-400" id="perfil-icone-btn"></i>
-            <span id="perfil-nome-btn" class="font-bold">Admin</span>
-            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
-          </button>
-          
-          <div id="menu-usuario" class="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-slate-200 p-2 z-50 hidden text-slate-800">
-            <div class="px-3 py-2 border-b border-slate-100">
-              <span class="text-[10px] font-black uppercase text-blue-600 block">Controle de Visualização</span>
-              <span id="lbl-perfil-atual" class="text-xs font-bold text-slate-900">Administrador Geral</span>
-            </div>
-            <div class="p-1 space-y-1 text-xs">
-              <button onclick="definirPerfil('ADMIN')" class="w-full text-left px-3 py-2 rounded-xl hover:bg-blue-50 font-bold flex items-center justify-between text-blue-700">
-                <span><i class="fa-solid fa-crown mr-2"></i> Administrador (Vê Tudo)</span>
-              </button>
-              <div class="border-t border-slate-100 my-1 pt-1 text-[11px] font-bold text-slate-400 px-3 uppercase">Ver como Prestador:</div>
-              <div id="lista-perfis-prestadores" class="space-y-1">
-                <!-- Preenchido dinamicamente com os cadastros -->
-              </div>
-            </div>
-          </div>
-        </div>
-
+      <div class="pt-2 border-t border-slate-100 text-[11px] text-slate-400 text-center">
+        SystemDiaria • Controle Individual Seguro
       </div>
     </div>
-  </header>
+  </div>
 
-  <!-- Container Geral -->
-  <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-5 space-y-5">
-
-    <!-- Card de Parâmetros e Regras do Sistema -->
-    <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs">
-      <div class="space-y-1">
-        <div class="flex items-center gap-2 font-bold text-slate-900">
-          <i class="fa-solid fa-sliders text-blue-600"></i>
-          <span>Parâmetros Oficiais:</span>
-          <span class="font-normal text-slate-600">Diária R$ 190,00 | Adicional (+5h30) R$ 30,00 | Aluguel R$ 60,00 (só Mot.) | KM R$ 0,68/km (só Mot.)</span>
+  <!-- APLICAÇÃO PRINCIPAL (Visível após autenticação) -->
+  <div id="app-container" class="hidden flex-1 flex flex-col">
+    
+    <!-- Topbar -->
+    <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+      <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <i class="fa-solid fa-route text-blue-400 text-lg"></i>
+          <h1 class="text-base font-bold tracking-tight">SystemDiaria</h1>
         </div>
-        <div class="flex items-center gap-2 text-slate-500 text-[11px]">
-          <i class="fa-regular fa-calendar-check text-emerald-600"></i>
-          <span><b>Regra Quinquenal:</b> 01 a 15 pago dia 25 do mês | 16 a 31 pago dia 10 do mês seguinte</span>
-        </div>
-      </div>
-      <div id="tag-alerta-prestador" class="hidden px-3 py-1.5 bg-amber-50 border border-amber-200 rounded-xl text-amber-800 font-bold text-xs flex items-center gap-1.5">
-        <i class="fa-solid fa-lock text-amber-600"></i>
-        <span>Modo Prestador: <span id="tag-nome-prestador"></span></span>
-      </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- ABA 1: LANÇAMENTO DE ROTAS                                   -->
-    <!-- ============================================================ -->
-    <div id="view-lancamento" class="space-y-6">
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         
-        <!-- Formulário de Entrada (8 campos solicitados) -->
-        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm">
-          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-5">
-            <div>
-              <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                <i class="fa-solid fa-pen-to-square text-blue-600"></i> Lançar Nova Rota
-              </h2>
-              <p class="text-xs text-slate-500 mt-0.5">Preencha os dados da viagem para cálculo automático.</p>
-            </div>
-            <button type="button" onclick="carregarExemploCarlos()" class="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold rounded-xl border border-blue-200 transition flex items-center gap-1.5 shadow-sm">
-              <i class="fa-solid fa-bolt text-amber-500"></i> Exemplo Carlos (25/09)
-            </button>
+        <div class="flex items-center gap-3">
+          <div class="text-right">
+            <span id="user-display-name" class="block text-xs font-bold text-white">Carregando...</span>
+            <span id="user-display-role" class="block text-[10px] text-blue-300">Prestador</span>
+          </div>
+          <button id="btn-logout" title="Sair da Conta" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Navegação -->
+    <nav class="max-w-5xl mx-auto px-4 pt-4 w-full flex gap-2">
+      <button class="tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 text-white shadow-sm flex items-center gap-2" data-tab="lancamentos">
+        <i class="fa-solid fa-circle-plus"></i> Novo Lançamento
+      </button>
+      <button class="tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 flex items-center gap-2" data-tab="fechamentos">
+        <i class="fa-solid fa-wallet"></i> Meus Valores
+      </button>
+      <button id="tab-btn-cadastros" class="tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 flex items-center gap-2 hidden" data-tab="cadastros">
+        <i class="fa-solid fa-address-book"></i> Cadastros (Admin)
+      </button>
+    </nav>
+
+    <!-- Conteúdo -->
+    <main class="max-w-5xl mx-auto px-4 py-4 flex-1 w-full space-y-6">
+
+      <!-- Toast -->
+      <div id="toast" class="hidden p-3 rounded-xl text-xs font-semibold flex items-center justify-between shadow-lg mb-4 transition-all"></div>
+
+      <!-- ABA 1: LANÇAMENTOS (Acesso livre para todos) -->
+      <section id="aba-lancamentos" class="tab-pane space-y-6">
+        
+        <div class="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 shadow-sm text-xs text-slate-600 flex flex-wrap gap-x-6 gap-y-2 justify-between items-center bg-gradient-to-r from-blue-50/60 to-indigo-50/60">
+          <span class="font-bold text-slate-800 flex items-center gap-1.5">
+            <i class="fa-solid fa-sliders text-blue-600"></i> Tabela Operacional:
+          </span>
+          <span>Diária: <b>R$ 190,00</b></span>
+          <span>+5h30: <b>R$ 30,00</b></span>
+          <span>KM: <b>R$ 0,68/km</b> (Motorista)</span>
+          <span>Aluguel: <b>R$ 60,00</b> (Motorista)</span>
+        </div>
+
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+            <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-truck-moving text-blue-600"></i> Registro de Rota Diária
+            </h2>
+            <span id="badge-ciclo-previsto" class="text-xs px-2.5 py-1 rounded-full bg-blue-50 text-blue-700 font-semibold border border-blue-200">
+              Pagamento: Informe a data
+            </span>
           </div>
 
-          <form id="form-rota" onsubmit="gravarRota(event)" class="space-y-4">
-            
-            <!-- Campo 1: Data + Previsão de Pagamento -->
+          <form id="form-rota" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">1. Data</label>
+                <input type="date" id="dataRota" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">2. Hora Início</label>
+                <input type="time" id="horaInicio" required class="calc-trigger w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">3. Hora Final</label>
+                <input type="time" id="horaFinal" required class="calc-trigger w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">4. KM Total</label>
+                <input type="number" step="0.1" id="kmTotal" min="0" placeholder="Ex: 120" required class="calc-trigger w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold">
+                <span class="text-[11px] text-slate-400">× R$ 0,68 p/ Motorista</span>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">5. Placa do Carro</label>
+                <select id="placaCarro" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold"></select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">6. Pedágio Total (R$)</label>
+                <input type="number" step="0.01" id="pedagioTotal" min="0" placeholder="0,00" class="calc-trigger w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold">
+                <span class="text-[11px] text-slate-400">Reembolso 100% p/ Motorista</span>
+              </div>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">1. Data</label>
-                <input type="date" id="campo-data" required class="input-calc w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">7. Motorista</label>
+                <select id="motoristaSelect" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold"></select>
               </div>
               <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Pagamento Previsto</label>
-                <div class="p-2.5 bg-slate-100 rounded-xl border border-slate-200 flex items-center gap-2">
-                  <i class="fa-solid fa-calendar-day text-blue-600"></i>
-                  <span id="lbl-pgto-previsto" class="text-xs font-extrabold text-slate-800">Selecione uma data</span>
-                </div>
+                <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">8. Segurança</label>
+                <select id="segurancaSelect" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold"></select>
               </div>
             </div>
 
-            <!-- Campos 2 e 3: Hora Início e Hora Final -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm flex justify-between items-center">
               <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">2. Hora Início</label>
-                <input type="time" id="campo-hora-inicio" required class="input-calc w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                <span class="text-slate-500 font-semibold block text-[11px] uppercase">Duração Apurada</span>
+                <span id="calc-duracao" class="text-slate-900 font-bold text-base">0h 00m</span>
               </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">3. Hora Final</label>
-                <input type="time" id="campo-hora-final" required class="input-calc w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-              </div>
+              <span id="calc-tag-adic" class="text-xs font-bold text-slate-400">Não atingiu +5h30</span>
             </div>
 
-            <!-- Duração Apurada e Adicional -->
-            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs flex items-center justify-between">
-              <span class="text-slate-600 font-medium flex items-center gap-1.5">
-                <i class="fa-solid fa-stopwatch text-slate-400"></i> Duração:
-              </span>
-              <div class="flex items-center gap-2">
-                <span id="lbl-duracao-tempo" class="font-extrabold text-slate-800">--h --min</span>
-                <span id="badge-duracao-adic" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-600">Normal (&lt;5h30)</span>
-              </div>
-            </div>
-
-            <!-- Campos 4 e 5: KM Total e Pedágio Total -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">4. KM Total</label>
-                <input type="number" step="0.1" min="0" id="campo-km-total" placeholder="0" required class="input-calc w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                <span class="text-[11px] text-slate-400 mt-1 block">× R$ 0,68 para o motorista</span>
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">5. Pedágio Total (R$)</label>
-                <input type="number" step="0.01" min="0" id="campo-pedagio-total" placeholder="0,00" class="input-calc w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                <span class="text-[11px] text-slate-400 mt-1 block">Reembolso 100% para o motorista</span>
-              </div>
-            </div>
-
-            <!-- Campo 6: Placa do Carro -->
-            <div>
-              <div class="flex justify-between items-center mb-1">
-                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">6. Placa do Carro</label>
-                <button type="button" onclick="trocarAba('cadastros')" class="text-[11px] text-blue-600 hover:underline font-semibold">+ Cadastrar Veículo</button>
-              </div>
-              <select id="campo-placa-carro" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                <option value="">Selecione um veículo...</option>
-              </select>
-            </div>
-
-            <!-- Campos 7 e 8: Motorista e Segurança -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <div class="flex justify-between items-center mb-1">
-                  <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">7. Motorista</label>
-                  <button type="button" onclick="trocarAba('cadastros')" class="text-[11px] text-blue-600 hover:underline font-semibold">+ Novo</button>
-                </div>
-                <select id="campo-motorista" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                  <option value="">Selecione o motorista...</option>
-                </select>
-              </div>
-              <div>
-                <div class="flex justify-between items-center mb-1">
-                  <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider">8. Segurança</label>
-                  <button type="button" onclick="trocarAba('cadastros')" class="text-[11px] text-blue-600 hover:underline font-semibold">+ Novo</button>
-                </div>
-                <select id="campo-seguranca" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
-                  <option value="">Selecione o segurança...</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Botões de Ação com Prevenção de Duplo Clique -->
-            <div class="pt-3 flex flex-col sm:flex-row gap-3">
-              <button type="submit" id="btn-gravar-rota" class="flex-1 py-3 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 active:scale-98 text-white font-bold text-sm shadow-md shadow-blue-200 transition flex items-center justify-center gap-2 cursor-pointer">
-                <i class="fa-solid fa-floppy-disk"></i> Gravar Lançamento da Rota
+            <div class="pt-2 flex flex-col sm:flex-row gap-3">
+              <button type="submit" id="btn-submit-rota" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md transition flex items-center justify-center gap-2">
+                <i class="fa-solid fa-floppy-disk"></i> Gravar Lançamento
               </button>
-              <button type="button" onclick="limparFormularioRota()" class="py-3 px-4 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 font-semibold text-sm transition">
+              <button type="button" id="btn-limpar" class="px-5 py-3 border border-slate-300 text-slate-600 hover:bg-slate-50 font-semibold rounded-xl">
                 Limpar
               </button>
             </div>
-
           </form>
         </div>
 
-        <!-- Painel de Apuração em Tempo Real -->
-        <div class="lg:col-span-5 space-y-4">
-          <div class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm space-y-4">
-            <h3 class="text-xs font-extrabold uppercase tracking-wider text-slate-400 flex items-center justify-between">
-              <span>Resultado do Cálculo da Rota</span>
-              <i class="fa-solid fa-calculator text-blue-600"></i>
-            </h3>
-
-            <!-- Custo Total da Rota -->
-            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100 text-center">
-              <span class="text-[11px] font-bold text-blue-700 uppercase tracking-widest block mb-0.5">Custo Total da Rota</span>
-              <span id="prev-total-rota" class="text-3xl font-black text-slate-900 tracking-tight">R$ 0,00</span>
-              <span class="text-[11px] text-slate-500 block mt-1">(Motorista + Segurança)</span>
-            </div>
-
-            <!-- Demonstrativo Motorista -->
-            <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-2 text-xs">
-              <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-                <span class="font-bold text-slate-800 flex items-center gap-1.5">
-                  <i class="fa-solid fa-car text-blue-600"></i> Motorista:
-                </span>
-                <span id="prev-mot-total" class="font-black text-sm text-blue-700">R$ 0,00</span>
-              </div>
-              <div class="space-y-1 text-slate-600">
-                <div class="flex justify-between">
-                  <span>Diária Fixa:</span>
-                  <span id="prev-mot-diaria" class="font-semibold text-slate-800">R$ 190,00</span>
-                </div>
-                <div class="flex justify-between">
-                  <span>Adicional (+5h30):</span>
-                  <span id="prev-mot-adic" class="font-semibold text-slate-800">R$ 0,00</span>
-                </div>
-                <div class="flex justify-between">
-                  <span>Aluguel do Carro:</span>
-                  <span id="prev-mot-aluguel" class="font-semibold text-slate-800">R$ 60,00</span>
-                </div>
-                <div class="flex justify-between">
-                  <span>Reembolso KM (<span id="prev-km-txt">0</span> km × 0,68):</span>
-                  <span id="prev-mot-km" class="font-semibold text-slate-800">R$ 0,00</span>
-                </div>
-                <div class="flex justify-between">
-                  <span>Pedágio (Reembolso 100%):</span>
-                  <span id="prev-mot-pedagio" class="font-semibold text-slate-800">R$ 0,00</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Demonstrativo Segurança -->
-            <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-2 text-xs">
-              <div class="flex items-center justify-between border-b border-slate-200 pb-2">
-                <span class="font-bold text-slate-800 flex items-center gap-1.5">
-                  <i class="fa-solid fa-shield-halved text-emerald-600"></i> Segurança:
-                </span>
-                <span id="prev-seg-total" class="font-black text-sm text-emerald-700">R$ 0,00</span>
-              </div>
-              <div class="space-y-1 text-slate-600">
-                <div class="flex justify-between">
-                  <span>Diária Fixa:</span>
-                  <span id="prev-seg-diaria" class="font-semibold text-slate-800">R$ 190,00</span>
-                </div>
-                <div class="flex justify-between">
-                  <span>Adicional (+5h30):</span>
-                  <span id="prev-seg-adic" class="font-semibold text-slate-800">R$ 0,00</span>
-                </div>
-              </div>
-            </div>
-
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- ABA 2: CADASTROS (MOTORISTA, SEGURANÇA, VEÍCULO)             -->
-    <!-- ============================================================ -->
-    <div id="view-cadastros" class="space-y-6 hidden">
-      
-      <!-- Sub-navegação dos Cadastros -->
-      <div class="flex items-center gap-2 border-b border-slate-200 pb-3">
-        <button onclick="trocarSubCadastro('motorista')" id="subtab-motorista" class="px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-sm">
-          <i class="fa-solid fa-id-card mr-1"></i> Motoristas
-        </button>
-        <button onclick="trocarSubCadastro('seguranca')" id="subtab-seguranca" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200">
-          <i class="fa-solid fa-user-shield mr-1"></i> Seguranças
-        </button>
-        <button onclick="trocarSubCadastro('veiculo')" id="subtab-veiculo" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200">
-          <i class="fa-solid fa-car mr-1"></i> Veículos
-        </button>
-      </div>
-
-      <!-- PAINEL MOTORISTA -->
-      <div id="painel-cad-motorista" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <h3 class="text-sm font-extrabold text-slate-900 mb-3 flex items-center gap-2">
-            <i class="fa-solid fa-id-card text-blue-600"></i> Cadastrar Motorista
-          </h3>
-          <form onsubmit="gravarMotorista(event)" class="space-y-3">
-            <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nome Completo</label>
-              <input type="text" id="cad-mot-nome" required placeholder="Ex: Carlos Eduardo" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-blue-500">
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Apelido (Identificador)</label>
-              <input type="text" id="cad-mot-apelido" required placeholder="Ex: CARLOS" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold uppercase focus:bg-white focus:border-blue-500">
-            </div>
-            <button type="submit" id="btn-cad-mot" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
-              Salvar Motorista
-            </button>
-          </form>
-        </div>
-
-        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <h3 class="text-sm font-extrabold text-slate-900 mb-3">Motoristas Cadastrados</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50 text-slate-400 uppercase font-bold border-b border-slate-100">
-                <tr>
-                  <th class="py-2.5 px-3">Apelido</th>
-                  <th class="py-2.5 px-3">Nome Completo</th>
-                  <th class="py-2.5 px-3 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody id="tabela-motoristas" class="divide-y divide-slate-100"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- PAINEL SEGURANÇA -->
-      <div id="painel-cad-seguranca" class="grid grid-cols-1 lg:grid-cols-12 gap-6 hidden">
-        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <h3 class="text-sm font-extrabold text-slate-900 mb-3 flex items-center gap-2">
-            <i class="fa-solid fa-user-shield text-blue-600"></i> Cadastrar Segurança
-          </h3>
-          <form onsubmit="gravarSeguranca(event)" class="space-y-3">
-            <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Nome Completo</label>
-              <input type="text" id="cad-seg-nome" required placeholder="Ex: Marcos Vinicius" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-blue-500">
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Apelido (Identificador)</label>
-              <input type="text" id="cad-seg-apelido" required placeholder="Ex: MARCOS" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold uppercase focus:bg-white focus:border-blue-500">
-            </div>
-            <button type="submit" id="btn-cad-seg" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
-              Salvar Segurança
-            </button>
-          </form>
-        </div>
-
-        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <h3 class="text-sm font-extrabold text-slate-900 mb-3">Seguranças Cadastrados</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50 text-slate-400 uppercase font-bold border-b border-slate-100">
-                <tr>
-                  <th class="py-2.5 px-3">Apelido</th>
-                  <th class="py-2.5 px-3">Nome Completo</th>
-                  <th class="py-2.5 px-3 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody id="tabela-segurancas" class="divide-y divide-slate-100"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      <!-- PAINEL VEÍCULO -->
-      <div id="painel-cad-veiculo" class="grid grid-cols-1 lg:grid-cols-12 gap-6 hidden">
-        <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <h3 class="text-sm font-extrabold text-slate-900 mb-3 flex items-center gap-2">
-            <i class="fa-solid fa-car text-blue-600"></i> Cadastrar Veículo
-          </h3>
-          <form onsubmit="gravarVeiculo(event)" class="space-y-3">
-            <div class="grid grid-cols-2 gap-2">
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Marca</label>
-                <input type="text" id="cad-vei-marca" required placeholder="Ex: Fiat" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-blue-500">
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Modelo</label>
-                <input type="text" id="cad-vei-modelo" required placeholder="Ex: Fiorino" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-blue-500">
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Placa</label>
-              <input type="text" id="cad-vei-placa" required placeholder="Ex: CAR-2026" class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold uppercase focus:bg-white focus:border-blue-500">
-            </div>
-            <div>
-              <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Proprietário</label>
-              <select id="cad-vei-proprietario" required class="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:bg-white focus:border-blue-500">
-                <option value="Motorista">Motorista (Próprio)</option>
-                <option value="Empresa">Empresa / Terceiro</option>
-              </select>
-            </div>
-            <button type="submit" id="btn-cad-vei" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm transition">
-              Salvar Veículo
-            </button>
-          </form>
-        </div>
-
-        <div class="lg:col-span-7 bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
-          <h3 class="text-sm font-extrabold text-slate-900 mb-3">Veículos Cadastrados</h3>
-          <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-slate-50 text-slate-400 uppercase font-bold border-b border-slate-100">
-                <tr>
-                  <th class="py-2.5 px-3">Placa</th>
-                  <th class="py-2.5 px-3">Veículo</th>
-                  <th class="py-2.5 px-3">Proprietário</th>
-                  <th class="py-2.5 px-3 text-center">Ações</th>
-                </tr>
-              </thead>
-              <tbody id="tabela-veiculos" class="divide-y divide-slate-100"></tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- ABA 3: FECHAMENTOS & PAGAMENTOS QUINZENAIS                  -->
-    <!-- ============================================================ -->
-    <div id="view-fechamentos" class="space-y-6 hidden">
-      
-      <!-- Filtros do Fechamento -->
-      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-4">
-        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
-          <div>
-            <h2 class="text-base font-extrabold text-slate-900 flex items-center gap-2">
-              <i class="fa-solid fa-sack-dollar text-amber-500"></i> <span id="fech-view-titulo">Fechamentos Consolidados por Quinzena</span>
+        <!-- Tabela (Mostra apenas as viagens que o usuário participou) -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-list text-slate-500"></i> Histórico de Viagens
             </h2>
-            <p id="fech-view-subtitulo" class="text-xs text-slate-500 mt-0.5">Selecione o ciclo de quitação para ver a apuração individual.</p>
+            <span id="contador-rotas" class="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-semibold">0 rotas</span>
           </div>
 
-          <div class="flex flex-wrap items-center gap-2 w-full md:w-auto">
-            <select id="filtro-fech-ciclo" onchange="renderizarFechamentos()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:bg-white focus:border-blue-500">
-              <!-- Preenchido via script -->
-            </select>
-            <select id="filtro-fech-pessoa" onchange="renderizarFechamentos()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:bg-white focus:border-blue-500">
-              <option value="">Todos os Prestadores</option>
-            </select>
-          </div>
-        </div>
-
-        <!-- Cards de Resumo da Quinzena Selecionada -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
-          <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total de Serviços</span>
-            <span id="card-fech-qtd" class="text-lg font-black text-slate-800">0</span>
-          </div>
-          <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Motoristas</span>
-            <span id="card-fech-mot" class="text-lg font-black text-blue-600">R$ 0,00</span>
-          </div>
-          <div class="bg-slate-50 p-3 rounded-xl border border-slate-200">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Seguranças</span>
-            <span id="card-fech-seg" class="text-lg font-black text-emerald-600">R$ 0,00</span>
-          </div>
-          <div class="bg-slate-900 text-white p-3 rounded-xl">
-            <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Total Geral</span>
-            <span id="card-fech-total" class="text-lg font-black text-amber-400">R$ 0,00</span>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs sm:text-sm border-collapse min-w-[650px]">
+              <thead>
+                <tr class="border-b border-slate-200 text-slate-400 uppercase font-semibold text-[11px]">
+                  <th class="py-2.5 px-3">Data</th>
+                  <th class="py-2.5 px-3">Horário</th>
+                  <th class="py-2.5 px-3">Equipe</th>
+                  <th class="py-2.5 px-3">Placa / KM</th>
+                  <th class="py-2.5 px-3 text-right">Meu Recebimento</th>
+                  <th class="py-2.5 px-3 text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-rotas" class="divide-y divide-slate-100"></tbody>
+            </table>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Grade de Fechamentos Individuais -->
-      <div id="grid-fechamento-cards" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <!-- Injetado dinamicamente -->
-      </div>
-
-      <!-- Estado Vazio -->
-      <div id="empty-state-fechamento" class="p-12 text-center bg-white rounded-2xl border border-slate-200 hidden">
-        <div class="w-14 h-14 mx-auto mb-3 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center text-2xl">
-          <i class="fa-solid fa-receipt"></i>
-        </div>
-        <h4 class="text-slate-800 font-bold text-sm">Nenhum fechamento registrado para este ciclo</h4>
-        <p class="text-slate-400 text-xs mt-1">Gere rotas na aba de lançamento para preencher este período.</p>
-      </div>
-
-    </div>
-
-    <!-- ============================================================ -->
-    <!-- ABA 4: HISTÓRICO DE ROTAS                                    -->
-    <!-- ============================================================ -->
-    <div id="view-historico" class="space-y-6 hidden">
-      <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-4">
-        <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
-          <div class="relative w-full sm:w-80">
-            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-              <i class="fa-solid fa-magnifying-glass"></i>
-            </span>
-            <input type="text" id="filtro-busca-hist" oninput="filtrarHistorico()" placeholder="Buscar por motorista, segurança, data..." class="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm focus:bg-white focus:border-blue-500 transition">
+      <!-- ABA 2: FECHAMENTO INDIVIDUAL -->
+      <section id="aba-fechamentos" class="tab-pane hidden space-y-6">
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-4">
+          <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <h2 class="text-base font-bold text-slate-900">Extrato de Pagamento Quinquenal</h2>
+              <p class="text-xs text-slate-500">Apenas os valores vinculados à sua função.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <select id="filtro-ciclo" class="bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-semibold"></select>
+              <!-- Filtro de pessoa só aparece para o Administrador -->
+              <select id="filtro-pessoa" class="bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-semibold hidden"></select>
+            </div>
           </div>
-          <button onclick="exportarRotasCSV()" class="px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-xl border border-emerald-200 transition flex items-center gap-1.5 shadow-sm">
-            <i class="fa-solid fa-file-excel"></i> Exportar Planilha (CSV)
-          </button>
-        </div>
-      </div>
 
-      <!-- Tabela em Desktop -->
-      <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-        <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs sm:text-sm">
-            <thead class="bg-slate-50 border-b border-slate-200 text-slate-400 uppercase text-[11px] font-bold tracking-wider">
-              <tr>
-                <th class="py-3 px-3.5">Data</th>
-                <th class="py-3 px-3.5">Pgto Previsto</th>
-                <th class="py-3 px-3.5">Horário / Duração</th>
-                <th class="py-3 px-3.5">Placa</th>
-                <th class="py-3 px-3.5">Motorista</th>
-                <th class="py-3 px-3.5">Segurança</th>
-                <th class="py-3 px-3.5 text-center">KM / Pedágio</th>
-                <th class="py-3 px-3.5 text-right">Motorista</th>
-                <th class="py-3 px-3.5 text-right">Segurança</th>
-                <th class="py-3 px-3.5 text-right">Total Rota</th>
-                <th class="py-3 px-3.5 text-center col-acoes-header">Ações</th>
-              </tr>
-            </thead>
-            <tbody id="tabela-corpo-rotas" class="divide-y divide-slate-100">
-              <!-- Injetado dinamicamente -->
-            </tbody>
-          </table>
+          <div id="box-demonstrativo-fechamento" class="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-6 space-y-4"></div>
         </div>
+      </section>
 
-        <div id="empty-state-rotas" class="p-12 text-center hidden">
-          <div class="w-14 h-14 mx-auto mb-3 bg-slate-100 text-slate-400 rounded-2xl flex items-center justify-center text-2xl">
-            <i class="fa-solid fa-road"></i>
+      <!-- ABA 3: CADASTROS (Apenas Admin) -->
+      <section id="aba-cadastros" class="tab-pane hidden space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-3">
+            <h3 class="font-bold text-slate-900 text-sm">Motoristas</h3>
+            <form id="form-cad-motorista" class="space-y-2">
+              <input type="text" id="cadMotNome" placeholder="Nome Completo" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs">
+              <input type="text" id="cadMotApelido" placeholder="Apelido" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs">
+              <button type="submit" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition">Adicionar Motorista</button>
+            </form>
+            <ul id="lista-cad-motoristas" class="divide-y divide-slate-100 text-xs"></ul>
           </div>
-          <h4 class="text-slate-800 font-bold text-sm">Nenhuma rota registrada</h4>
-          <p class="text-slate-400 text-xs mt-1">Lançamentos salvos aparecerão aqui.</p>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-3">
+            <h3 class="font-bold text-slate-900 text-sm">Seguranças</h3>
+            <form id="form-cad-seguranca" class="space-y-2">
+              <input type="text" id="cadSegNome" placeholder="Nome Completo" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs">
+              <input type="text" id="cadSegApelido" placeholder="Apelido" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs">
+              <button type="submit" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition">Adicionar Segurança</button>
+            </form>
+            <ul id="lista-cad-segurancas" class="divide-y divide-slate-100 text-xs"></ul>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-3">
+            <h3 class="font-bold text-slate-900 text-sm">Veículos</h3>
+            <form id="form-cad-veiculo" class="space-y-2">
+              <input type="text" id="cadVeicPlaca" placeholder="Placa (ex: ELZ2D94)" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs uppercase font-mono">
+              <input type="text" id="cadVeicModelo" placeholder="Modelo" required class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs">
+              <button type="submit" class="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition">Adicionar Veículo</button>
+            </form>
+            <ul id="lista-cad-veiculos" class="divide-y divide-slate-100 text-xs"></ul>
+          </div>
         </div>
-      </div>
+      </section>
 
-    </div>
-
-  </main>
-
-  <!-- Navegação Mobile Inferior -->
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 z-40 px-3 py-2 flex justify-around items-center shadow-lg">
-    <button onclick="trocarAba('lancamento')" id="m-tab-lancamento" class="mobile-tab-btn flex flex-col items-center gap-1 text-blue-600">
-      <i class="fa-solid fa-plus-circle text-base"></i>
-      <span class="text-[10px] font-bold">Lançar</span>
-    </button>
-    <button onclick="trocarAba('cadastros')" id="m-tab-cadastros" class="mobile-tab-btn flex flex-col items-center gap-1 text-slate-400">
-      <i class="fa-solid fa-address-book text-base"></i>
-      <span class="text-[10px] font-medium">Cadastros</span>
-    </button>
-    <button onclick="trocarAba('fechamentos')" id="m-tab-fechamentos" class="mobile-tab-btn flex flex-col items-center gap-1 text-slate-400">
-      <i class="fa-solid fa-sack-dollar text-base"></i>
-      <span class="text-[10px] font-medium">Pagamentos</span>
-    </button>
-    <button onclick="trocarAba('historico')" id="m-tab-historico" class="mobile-tab-btn flex flex-col items-center gap-1 text-slate-400">
-      <i class="fa-solid fa-list-check text-base"></i>
-      <span class="text-[10px] font-medium">Histórico</span>
-    </button>
-  </nav>
-
-  <!-- Modal Recibo e Impressão / WhatsApp -->
-  <div id="modal-recibo" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-    <div class="bg-white w-full max-w-lg rounded-2xl p-6 shadow-2xl space-y-4 border border-slate-200 overflow-y-auto max-h-[90vh]">
-      <div id="comprovante-print-area" class="space-y-4">
-        <!-- Injetado dinamicamente -->
-      </div>
-      <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100 no-print">
-        <button onclick="window.print()" class="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center gap-1.5">
-          <i class="fa-solid fa-print"></i> Imprimir Recibo
-        </button>
-        <button onclick="enviarWhatsAppModal()" class="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition flex items-center gap-1.5 shadow-sm">
-          <i class="fa-brands fa-whatsapp text-sm"></i> WhatsApp
-        </button>
-        <button onclick="fecharModalRecibo()" class="px-3.5 py-2 border border-slate-200 text-slate-600 text-xs font-bold rounded-xl hover:bg-slate-50 transition">
-          Fechar
-        </button>
-      </div>
-    </div>
+    </main>
   </div>
 
-  <!-- Toast Notification Feedback -->
-  <div id="toast" class="fixed top-5 right-5 z-50 transform -translate-y-24 opacity-0 transition-all duration-300 pointer-events-none bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-3 text-xs font-medium">
-    <i id="toast-icon" class="fa-solid fa-circle-check text-emerald-400 text-sm"></i>
-    <span id="toast-message">Registro salvo com sucesso!</span>
-  </div>
-
-  <!-- Script Modular: Lógica e Conexão Firebase -->
+  <!-- Script Firebase Modular -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { 
+      getAuth, 
+      signInWithEmailAndPassword, 
+      onAuthStateChanged, 
+      signOut 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { 
       getFirestore, 
       collection, 
       addDoc, 
       getDocs, 
       deleteDoc, 
-      doc, 
-      query, 
-      orderBy 
+      doc 
     } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    // 1. CREDENCIAIS OFICIAIS DO PROJETO SYSTEMDIARIA
     const firebaseConfig = {
       apiKey: "AIzaSyDYLDxzP1ZwC7XueID-I3wxpUQmYWBKZIQ",
       authDomain: "systemdiaria.firebaseapp.com",
@@ -679,1175 +290,510 @@
       appId: "1:325090947197:web:0cc61116fe5c6b67d00114"
     };
 
-    // Parâmetros de Cálculo Fixados
-    const PARAMS = {
+    const CONSTS = {
       DIARIA: 190.00,
       ADICIONAL_5H30: 30.00,
-      ALUGUEL_CARRO: 60.00,
-      FATOR_KM: 0.68
+      FATOR_KM: 0.68,
+      ALUGUEL_CARRO: 60.00
     };
 
-    // Estados da Aplicação
-    let app = null;
-    let db = null;
-    let isFirebaseConnected = false;
-    let salvandoOperacao = false; // FLAG CRÍTICA: impede duplo clique/duplicação
+    // Mapeamento automático de e-mail para apelido e papel
+    const MAPA_USUARIOS = {
+      "kaique@sistema.com": { apelido: "Kaique", role: "motorista", nome: "Andre Kaique Clorado" },
+      "anderson@sistema.com": { apelido: "Anderson", role: "motorista", nome: "Anderson Caetano de Souza" },
+      "jlima@sistema.com": { apelido: "J. Lima", role: "seguranca", nome: "Jessé Lima da Silva" },
+      "admin@sistema.com": { apelido: "Administrador", role: "admin", nome: "Gestor do Sistema" }
+    };
 
-    let listaRotas = [];
-    let listaMotoristas = [];
-    let listaSegurancas = [];
-    let listaVeiculos = [];
-    let reciboModalAtivo = null;
+    const DADOS_BASE = {
+      motoristas: [
+        { id: "m1", nome: "Andre Kaique Clorado", apelido: "Kaique" },
+        { id: "m2", nome: "Anderson Caetano de Souza", apelido: "Anderson" }
+      ],
+      segurancas: [
+        { id: "s1", nome: "Jessé Lima da Silva", apelido: "J. Lima" }
+      ],
+      veiculos: [
+        { id: "v1", placa: "ELZ2D94", modelo: "FIAT STRADA" }
+      ]
+    };
 
-    // Perfil Ativo (ADMIN ou prestador selecionado)
-    let perfilAtivo = 'ADMIN'; // 'ADMIN' ou apelido da pessoa (ex: 'CARLOS')
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-    // Formatadores
+    let usuarioLogado = null;
+    let cacheRotas = [];
+    let cadMotoristas = JSON.parse(localStorage.getItem('sys_cad_mot')) || DADOS_BASE.motoristas;
+    let cadSegurancas = JSON.parse(localStorage.getItem('sys_cad_seg')) || DADOS_BASE.segurancas;
+    let cadVeiculos = JSON.parse(localStorage.getItem('sys_cad_veic')) || DADOS_BASE.veiculos;
+
     const fmtBRL = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-    const fmtDataBR = (str) => {
-      if (!str) return '--/--/----';
-      const p = str.split('-');
-      return p.length === 3 ? `${p[2]}/${p[1]}/${p[0]}` : str;
-    };
 
-    // Função Toast Visual
-    window.mostrarToast = (msg, icon = 'fa-solid fa-circle-check text-emerald-400') => {
+    function showToast(msg, isSuccess = true) {
       const toast = document.getElementById('toast');
-      document.getElementById('toast-message').innerText = msg;
-      document.getElementById('toast-icon').className = icon;
-      toast.classList.remove('-translate-y-24', 'opacity-0');
-      setTimeout(() => toast.classList.add('-translate-y-24', 'opacity-0'), 3000);
-    };
-
-    // ============================================================
-    // 2. INICIALIZAÇÃO E CONEXÃO FIRESTORE COM FALLBACK
-    // ============================================================
-    async function inicializarConexao() {
-      const pillDot = document.getElementById('cloud-dot');
-      const pillTxt = document.getElementById('cloud-txt');
-
-      try {
-        app = initializeApp(firebaseConfig);
-        db = getFirestore(app);
-
-        // Teste de consulta simples para validar permissões
-        const testeCol = collection(db, "rotas");
-        await getDocs(testeCol);
-
-        isFirebaseConnected = true;
-        pillDot.className = "w-2.5 h-2.5 rounded-full bg-emerald-400";
-        pillTxt.innerText = "Firebase Conectado";
-        mostrarToast("Conectado ao Cloud Firestore!");
-      } catch (err) {
-        console.warn("Falha no Firebase, utilizando LocalStorage:", err);
-        isFirebaseConnected = false;
-        pillDot.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
-        pillTxt.innerText = "Modo Local (Offline)";
-      }
-
-      await carregarTodosOsDados();
+      toast.className = `p-3 rounded-xl text-xs font-semibold flex items-center justify-between shadow-lg mb-4 ${
+        isSuccess ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+      }`;
+      toast.innerHTML = `<span><i class="fa-solid ${isSuccess ? 'fa-check-circle' : 'fa-triangle-exclamation'} mr-2"></i>${msg}</span>`;
+      toast.classList.remove('hidden');
+      setTimeout(() => toast.classList.add('hidden'), 4000);
     }
 
-    // Regra Crítica: lê do Firestore se conectado, senão do LocalStorage (NUNCA MISTURA)
-    async function carregarTodosOsDados() {
-      if (isFirebaseConnected && db) {
-        try {
-          // 1. Motoristas
-          const snapMot = await getDocs(collection(db, "motoristas"));
-          listaMotoristas = [];
-          snapMot.forEach(d => listaMotoristas.push({ id: d.id, ...d.data() }));
+    // Monitoramento da Sessão
+    onAuthStateChanged(auth, (user) => {
+      const authScreen = document.getElementById('auth-screen');
+      const appContainer = document.getElementById('app-container');
 
-          // 2. Seguranças
-          const snapSeg = await getDocs(collection(db, "segurancas"));
-          listaSegurancas = [];
-          snapSeg.forEach(d => listaSegurancas.push({ id: d.id, ...d.data() }));
+      if (user) {
+        const perfil = MAPA_USUARIOS[user.email.toLowerCase()] || {
+          apelido: user.email.split('@')[0],
+          role: "prestador",
+          nome: user.email
+        };
 
-          // 3. Veículos
-          const snapVei = await getDocs(collection(db, "veiculos"));
-          listaVeiculos = [];
-          snapVei.forEach(d => listaVeiculos.push({ id: d.id, ...d.data() }));
+        usuarioLogado = { email: user.email, ...perfil };
 
-          // 4. Rotas
-          const snapRot = await getDocs(query(collection(db, "rotas"), orderBy("createdAt", "desc")));
-          listaRotas = [];
-          snapRot.forEach(d => listaRotas.push({ id: d.id, ...d.data() }));
+        document.getElementById('user-display-name').textContent = usuarioLogado.apelido;
+        document.getElementById('user-display-role').textContent = usuarioLogado.role.toUpperCase();
 
-        } catch (e) {
-          console.error("Erro ao carregar dados do Firestore:", e);
-          carregarDadosLocais();
+        // Se for admin, exibe a aba de cadastros e o seletor de pessoas
+        if (usuarioLogado.role === 'admin') {
+          document.getElementById('tab-btn-cadastros').classList.remove('hidden');
+          document.getElementById('filtro-pessoa').classList.remove('hidden');
+        } else {
+          document.getElementById('tab-btn-cadastros').classList.add('hidden');
+          document.getElementById('filtro-pessoa').classList.add('hidden');
         }
+
+        authScreen.classList.add('hidden');
+        appContainer.classList.remove('hidden');
+
+        atualizarSelects();
+        calcularRota();
+        carregarRotas();
       } else {
-        carregarDadosLocais();
+        usuarioLogado = null;
+        authScreen.classList.remove('hidden');
+        appContainer.classList.add('hidden');
       }
-
-      // Se estiver vazio no primeiro uso, carrega os padrões da operação
-      carregarPadroesIniciaisSeVazio();
-      atualizarInterfaceCompleta();
-    }
-
-    function carregarDadosLocais() {
-      listaMotoristas = JSON.parse(localStorage.getItem('sys_mot') || '[]');
-      listaSegurancas = JSON.parse(localStorage.getItem('sys_seg') || '[]');
-      listaVeiculos = JSON.parse(localStorage.getItem('sys_vei') || '[]');
-      listaRotas = JSON.parse(localStorage.getItem('sys_rotas') || '[]');
-    }
-
-    function carregarPadroesIniciaisSeVazio() {
-      if (listaMotoristas.length === 0) {
-        listaMotoristas = [
-          { id: 'mot-1', nome: 'Carlos Eduardo', apelido: 'CARLOS' },
-          { id: 'mot-2', nome: 'Fernando Alves', apelido: 'FERNANDO' }
-        ];
-        if (!isFirebaseConnected) localStorage.setItem('sys_mot', JSON.stringify(listaMotoristas));
-      }
-      if (listaSegurancas.length === 0) {
-        listaSegurancas = [
-          { id: 'seg-1', nome: 'Marcos Vinicius', apelido: 'MARCOS' },
-          { id: 'seg-2', nome: 'Rafael Oliveira', apelido: 'RAFAEL' }
-        ];
-        if (!isFirebaseConnected) localStorage.setItem('sys_seg', JSON.stringify(listaSegurancas));
-      }
-      if (listaVeiculos.length === 0) {
-        listaVeiculos = [
-          { id: 'vei-1', marca: 'Fiat', modelo: 'Fiorino', placa: 'CAR-2026', proprietario: 'Motorista' },
-          { id: 'vei-2', marca: 'Renault', modelo: 'Kangoo', placa: 'ROT-8899', proprietario: 'Empresa' }
-        ];
-        if (!isFirebaseConnected) localStorage.setItem('sys_vei', JSON.stringify(listaVeiculos));
-      }
-    }
-
-    // ============================================================
-    // 3. REGRA DE QUINZENA E CÁLCULO DAS ROTAS
-    // ============================================================
-    window.calcularDataPagamento = (dataStr) => {
-      if (!dataStr) return { dataFormatada: '--/--/----', dataIso: '', periodoNome: 'Selecione uma data' };
-      const [anoStr, mesStr, diaStr] = dataStr.split('-');
-      const ano = parseInt(anoStr, 10);
-      const mes = parseInt(mesStr, 10);
-      const dia = parseInt(diaStr, 10);
-
-      let pgAno = ano;
-      let pgMes = mes;
-      let pgDia = 25;
-      let periodoNome = `1ª Quinzena (01 a 15/${String(mes).padStart(2, '0')}/${ano})`;
-
-      if (dia <= 15) {
-        pgDia = 25;
-        pgMes = mes;
-        pgAno = ano;
-      } else {
-        pgDia = 10;
-        pgMes = mes + 1;
-        if (pgMes > 12) {
-          pgMes = 1;
-          pgAno = ano + 1;
-        }
-        periodoNome = `2ª Quinzena (16 a 31/${String(mes).padStart(2, '0')}/${ano})`;
-      }
-
-      const mesFmt = String(pgMes).padStart(2, '0');
-      const diaFmt = String(pgDia).padStart(2, '0');
-      const dataIso = `${pgAno}-${mesFmt}-${diaFmt}`;
-      const dataFormatada = `${diaFmt}/${mesFmt}/${pgAno}`;
-
-      return { dataIso, dataFormatada, periodoNome };
-    };
-
-    function calcularDuracaoHoras(horaInicio, horaFinal) {
-      if (!horaInicio || !horaFinal) return { totalMin: 0, formatada: '--h --min', temAdicional: false };
-      const [hI, mI] = horaInicio.split(':').map(Number);
-      const [hF, mF] = horaFinal.split(':').map(Number);
-
-      let minInicio = hI * 60 + mI;
-      let minFinal = hF * 60 + mF;
-
-      // Virada de noite
-      if (minFinal <= minInicio) {
-        minFinal += 24 * 60;
-      }
-
-      const totalMin = minFinal - minInicio;
-      const horas = Math.floor(totalMin / 60);
-      const minutos = totalMin % 60;
-      const temAdicional = totalMin > 330; // Mais de 5h30
-
-      return {
-        totalMin,
-        temAdicional,
-        formatada: `${horas}h ${minutos < 10 ? '0' : ''}${minutos}min`
-      };
-    }
-
-    // Mecanismo de cálculo em tempo real
-    function executarCalculoEmTempoReal() {
-      const dataStr = document.getElementById('campo-data').value;
-      const horaInicio = document.getElementById('campo-hora-inicio').value;
-      const horaFinal = document.getElementById('campo-hora-final').value;
-      const kmTotal = Math.max(0, Number(document.getElementById('campo-km-total').value) || 0);
-      const pedagioTotal = Math.max(0, Number(document.getElementById('campo-pedagio-total').value) || 0);
-
-      // Previsão de Pagamento
-      const infoPgto = calcularDataPagamento(dataStr);
-      document.getElementById('lbl-pgto-previsto').innerText = dataStr ? `${infoPgto.dataFormatada} (${infoPgto.periodoNome.split(' ')[0]} ${infoPgto.periodoNome.split(' ')[1]})` : 'Selecione uma data';
-
-      // Duração e Adicional +5h30
-      const dur = calcularDuracaoHoras(horaInicio, horaFinal);
-      document.getElementById('lbl-duracao-tempo').innerText = dur.formatada;
-
-      const badgeAdic = document.getElementById('badge-duracao-adic');
-      const adicValor = dur.temAdicional ? PARAMS.ADICIONAL_5H30 : 0;
-
-      if (dur.temAdicional) {
-        badgeAdic.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300";
-        badgeAdic.innerText = "+5h30 Aplicado (+R$ 30 cada)";
-      } else {
-        badgeAdic.className = "px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-200 text-slate-600";
-        badgeAdic.innerText = "Normal (<5h30)";
-      }
-
-      // Motorista: Diária + Adic + Aluguel R$ 60 + KM*0.68 + Pedágio
-      const motDiaria = PARAMS.DIARIA;
-      const motAdic = adicValor;
-      const motAluguel = PARAMS.ALUGUEL_CARRO;
-      const motKm = kmTotal * PARAMS.FATOR_KM;
-      const motPedagio = pedagioTotal;
-      const subtotalMotorista = motDiaria + motAdic + motAluguel + motKm + motPedagio;
-
-      // Segurança: Diária + Adic
-      const segDiaria = PARAMS.DIARIA;
-      const segAdic = adicValor;
-      const subtotalSeguranca = segDiaria + segAdic;
-
-      const totalRota = subtotalMotorista + subtotalSeguranca;
-
-      // Atualiza interface do card lateral
-      document.getElementById('prev-km-txt').innerText = kmTotal.toFixed(1);
-      document.getElementById('prev-mot-diaria').innerText = fmtBRL(motDiaria);
-      document.getElementById('prev-mot-adic').innerText = fmtBRL(motAdic);
-      document.getElementById('prev-mot-aluguel').innerText = fmtBRL(motAluguel);
-      document.getElementById('prev-mot-km').innerText = fmtBRL(motKm);
-      document.getElementById('prev-mot-pedagio').innerText = fmtBRL(motPedagio);
-      document.getElementById('prev-mot-total').innerText = fmtBRL(subtotalMotorista);
-
-      document.getElementById('prev-seg-diaria').innerText = fmtBRL(segDiaria);
-      document.getElementById('prev-seg-adic').innerText = fmtBRL(segAdic);
-      document.getElementById('prev-seg-total').innerText = fmtBRL(subtotalSeguranca);
-
-      document.getElementById('prev-total-rota').innerText = fmtBRL(totalRota);
-
-      return {
-        infoPgto,
-        dur,
-        motDiaria,
-        motAdic,
-        motAluguel,
-        motKm,
-        motPedagio,
-        subtotalMotorista,
-        segDiaria,
-        segAdic,
-        subtotalSeguranca,
-        totalRota,
-        kmTotal,
-        pedagioTotal
-      };
-    }
-
-    document.querySelectorAll('.input-calc').forEach(el => {
-      el.addEventListener('input', executarCalculoEmTempoReal);
-      el.addEventListener('change', executarCalculoEmTempoReal);
     });
 
-    // Preenchimento Rápido - Exemplo Carlos
-    window.carregarExemploCarlos = () => {
-      document.getElementById('campo-data').value = '2026-09-02';
-      document.getElementById('campo-hora-inicio').value = '08:00';
-      document.getElementById('campo-hora-final').value = '14:00';
-      document.getElementById('campo-km-total').value = 150;
-      document.getElementById('campo-pedagio-total').value = 25.00;
-      document.getElementById('campo-placa-carro').value = 'CAR-2026';
-      document.getElementById('campo-motorista').value = 'CARLOS';
-      document.getElementById('campo-seguranca').value = 'MARCOS';
-      executarCalculoEmTempoReal();
-      mostrarToast("Exemplo Carlos carregado!");
-    };
-
-    window.limparFormularioRota = () => {
-      document.getElementById('form-rota').reset();
-      document.getElementById('campo-data').value = new Date().toISOString().slice(0, 10);
-      executarCalculoEmTempoReal();
-    };
-
-    // ============================================================
-    // 4. GRAVAÇÃO BLINDADA CONTRA DUPLICAÇÃO
-    // ============================================================
-    window.gravarRota = async (e) => {
+    // Login
+    document.getElementById('form-login').addEventListener('submit', async (e) => {
       e.preventDefault();
+      const email = document.getElementById('login-email').value.trim();
+      const pass = document.getElementById('login-senha').value;
+      const btn = document.getElementById('btn-login');
 
-      // 1. Trava anti-duplo clique
-      if (salvandoOperacao) return;
-      salvandoOperacao = true;
+      try {
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Autenticando...`;
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (err) {
+        alert("Falha no login: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Entrar no Sistema`;
+      }
+    });
 
-      const btn = document.getElementById('btn-gravar-rota');
+    // Logout
+    document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
+
+    // Abas
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => {
+          b.className = "tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 flex items-center gap-2";
+        });
+        btn.className = "tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-blue-600 text-white shadow-sm flex items-center gap-2";
+
+        const tab = btn.dataset.tab;
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
+        document.getElementById(`aba-${tab}`).classList.remove('hidden');
+
+        if (tab === 'fechamentos') renderizarFechamentos();
+      });
+    });
+
+    function atualizarSelects() {
+      const motSelect = document.getElementById('motoristaSelect');
+      const segSelect = document.getElementById('segurancaSelect');
+      const veicSelect = document.getElementById('placaCarro');
+
+      motSelect.innerHTML = cadMotoristas.map(m => `<option value="${m.apelido}">${m.apelido} (${m.nome})</option>`).join('');
+      segSelect.innerHTML = cadSegurancas.map(s => `<option value="${s.apelido}">${s.apelido} (${s.nome})</option>`).join('');
+      veicSelect.innerHTML = cadVeiculos.map(v => `<option value="${v.placa}">${v.placa} - ${v.modelo}</option>`).join('');
+
+      document.getElementById('lista-cad-motoristas').innerHTML = cadMotoristas.map(m => 
+        `<li class="py-2 flex justify-between items-center"><span><b>${m.apelido}</b> - ${m.nome}</span></li>`
+      ).join('');
+      document.getElementById('lista-cad-segurancas').innerHTML = cadSegurancas.map(s => 
+        `<li class="py-2 flex justify-between items-center"><span><b>${s.apelido}</b> - ${s.nome}</span></li>`
+      ).join('');
+      document.getElementById('lista-cad-veiculos').innerHTML = cadVeiculos.map(v => 
+        `<li class="py-2 flex justify-between items-center"><span><b class="font-mono">${v.placa}</b> - ${v.modelo}</span></li>`
+      ).join('');
+    }
+
+    function calcularCicloPagamento(dataStr) {
+      if (!dataStr) return { cicloId: "", dataPagamentoStr: "" };
+      const [ano, mes, dia] = dataStr.split('-').map(Number);
+      if (dia <= 15) {
+        return {
+          cicloId: `${ano}-${String(mes).padStart(2,'0')}-25`,
+          dataPagamentoStr: `25/${String(mes).padStart(2,'0')}/${ano}`
+        };
+      } else {
+        const prox = new Date(ano, mes, 10);
+        const aP = prox.getFullYear();
+        const mP = String(prox.getMonth() + 1).padStart(2, '0');
+        return {
+          cicloId: `${aP}-${mP}-10`,
+          dataPagamentoStr: `10/${mP}/${aP}`
+        };
+      }
+    }
+
+    function calcularRota() {
+      const d = document.getElementById('dataRota').value;
+      const hIni = document.getElementById('horaInicio').value;
+      const hFim = document.getElementById('horaFinal').value;
+      const km = Math.max(0, Number(document.getElementById('kmTotal').value) || 0);
+      const pedagio = Math.max(0, Number(document.getElementById('pedagioTotal').value) || 0);
+
+      if (d) {
+        const { dataPagamentoStr } = calcularCicloPagamento(d);
+        document.getElementById('badge-ciclo-previsto').textContent = `Pagamento: ${dataPagamentoStr}`;
+      }
+
+      let minutosTotais = 0;
+      if (hIni && hFim) {
+        const [h1, m1] = hIni.split(':').map(Number);
+        const [h2, m2] = hFim.split(':').map(Number);
+        let t1 = h1 * 60 + m1;
+        let t2 = h2 * 60 + m2;
+        if (t2 < t1) t2 += 24 * 60;
+        minutosTotais = t2 - t1;
+      }
+
+      const hDur = Math.floor(minutosTotais / 60);
+      const mDur = minutosTotais % 60;
+      document.getElementById('calc-duracao').textContent = `${hDur}h ${String(mDur).padStart(2, '0')}m`;
+
+      const atingiu5h30 = minutosTotais > 330;
+      const tagAdic = document.getElementById('calc-tag-adic');
+      if (atingiu5h30) {
+        tagAdic.textContent = "+5h30 Atingido (+R$ 30,00 p/ ambos)";
+        tagAdic.className = "text-xs font-bold text-emerald-600";
+      } else {
+        tagAdic.textContent = "Não atingiu +5h30";
+        tagAdic.className = "text-xs font-bold text-slate-400";
+      }
+
+      const valDiaria = CONSTS.DIARIA;
+      const valAdic = atingiu5h30 ? CONSTS.ADICIONAL_5H30 : 0;
+      const valKm = km * CONSTS.FATOR_KM;
+      const valAluguel = CONSTS.ALUGUEL_CARRO;
+
+      const subMotorista = valDiaria + valAdic + valAluguel + valKm + pedagio;
+      const subSeguranca = valDiaria + valAdic;
+
+      return {
+        duracaoFormatada: `${hDur}h ${String(mDur).padStart(2, '0')}m`,
+        atingiu5h30,
+        valDiaria,
+        valAdic,
+        valKm,
+        valAluguel,
+        pedagio,
+        subMotorista,
+        subSeguranca
+      };
+    }
+
+    document.querySelectorAll('.calc-trigger, #dataRota').forEach(el => el.addEventListener('input', calcularRota));
+
+    async function carregarRotas() {
+      cacheRotas = [];
+      try {
+        const snapshot = await getDocs(collection(db, "rotas"));
+        snapshot.forEach(d => cacheRotas.push({ id: d.id, ...d.data() }));
+      } catch (err) {
+        console.warn("Lendo localmente:", err);
+        cacheRotas = JSON.parse(localStorage.getItem('sys_rotas_backup') || '[]');
+      }
+
+      cacheRotas.sort((a, b) => (b.data || "").localeCompare(a.data || ""));
+      renderizarTabelaRotas();
+    }
+
+    // Renderiza respeitando a privacidade estrita do usuário autenticado
+    function renderizarTabelaRotas() {
+      const tbody = document.getElementById('tabela-rotas');
+      tbody.innerHTML = "";
+
+      if (!usuarioLogado) return;
+
+      const isAdmin = usuarioLogado.role === 'admin';
+      const meuApelido = usuarioLogado.apelido;
+
+      // Filtra as rotas que o prestador participou
+      const filtradas = cacheRotas.filter(r => {
+        if (isAdmin) return true;
+        return r.motorista === meuApelido || r.seguranca === meuApelido;
+      });
+
+      document.getElementById('contador-rotas').textContent = `${filtradas.length} rotas`;
+
+      if (filtradas.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Nenhuma rota registrada para sua conta.</td></tr>`;
+        return;
+      }
+
+      filtradas.forEach(item => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 transition";
+        const [a, m, d] = (item.data || "").split('-');
+        const dtFmt = d ? `${d}/${m}/${a}` : item.data;
+
+        // Determina o valor visível: se for o segurança logado, vê APENAS o dele.
+        let valorExibido = 0;
+        let etiquetaValor = "";
+
+        if (isAdmin) {
+          valorExibido = item.subMotorista + item.subSeguranca;
+          etiquetaValor = "Total da Rota";
+        } else if (item.motorista === meuApelido) {
+          valorExibido = item.subMotorista;
+          etiquetaValor = "Meu (Motorista)";
+        } else if (item.seguranca === meuApelido) {
+          valorExibido = item.subSeguranca;
+          etiquetaValor = "Meu (Segurança)";
+        }
+
+        tr.innerHTML = `
+          <td class="py-2.5 px-3 font-medium text-slate-900">${dtFmt}</td>
+          <td class="py-2.5 px-3 text-slate-600">${item.horaInicio} às ${item.horaFinal}</td>
+          <td class="py-2.5 px-3 text-slate-800">
+            <span class="block"><b>Mot:</b> ${item.motorista}</span>
+            <span class="block text-slate-500"><b>Seg:</b> ${item.seguranca}</span>
+          </td>
+          <td class="py-2.5 px-3 text-slate-600 font-mono">${item.placa} / ${item.km} km</td>
+          <td class="py-2.5 px-3 text-right">
+            <span class="block font-bold text-blue-600">${fmtBRL(valorExibido)}</span>
+            <span class="block text-[10px] text-slate-400 font-medium">${etiquetaValor}</span>
+          </td>
+          <td class="py-2.5 px-3 text-center">
+            ${isAdmin ? `
+              <button onclick="window.excluirRota('${item.id}')" class="text-rose-500 hover:text-rose-700 p-1" title="Excluir">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            ` : '—'}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Gravação da Rota (Qualquer um grava)
+    let enviando = false;
+    document.getElementById('form-rota').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (enviando) return;
+      enviando = true;
+
+      const btn = document.getElementById('btn-submit-rota');
       btn.disabled = true;
       btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Gravando...`;
 
-      try {
-        const calc = executarCalculoEmTempoReal();
-        const registro = {
-          data: document.getElementById('campo-data').value,
-          dataPagamentoIso: calc.infoPgto.dataIso,
-          dataPagamentoFormatada: calc.infoPgto.dataFormatada,
-          periodoNome: calc.infoPgto.periodoNome,
-          horaInicio: document.getElementById('campo-hora-inicio').value,
-          horaFinal: document.getElementById('campo-hora-final').value,
-          duracaoMin: calc.dur.totalMin,
-          duracaoFormatada: calc.dur.formatada,
-          temAdicional: calc.dur.temAdicional,
-          kmTotal: calc.kmTotal,
-          pedagioTotal: calc.pedagioTotal,
-          placaCarro: document.getElementById('campo-placa-carro').value,
-          motorista: document.getElementById('campo-motorista').value,
-          seguranca: document.getElementById('campo-seguranca').value,
-          motDiaria: calc.motDiaria,
-          motAdic: calc.motAdic,
-          motAluguel: calc.motAluguel,
-          motKm: calc.motKm,
-          motPedagio: calc.motPedagio,
-          subtotalMotorista: calc.subtotalMotorista,
-          segDiaria: calc.segDiaria,
-          segAdic: calc.segAdic,
-          subtotalSeguranca: calc.subtotalSeguranca,
-          totalRota: calc.totalRota,
-          createdAt: new Date().toISOString()
-        };
-
-        if (isFirebaseConnected && db) {
-          // Grava EXCLUSIVAMENTE no Firestore
-          const docRef = await addDoc(collection(db, "rotas"), registro);
-          registro.id = docRef.id;
-          listaRotas.unshift(registro);
-        } else {
-          // Grava EXCLUSIVAMENTE no LocalStorage
-          registro.id = "loc_" + Date.now();
-          listaRotas.unshift(registro);
-          localStorage.setItem('sys_rotas', JSON.stringify(listaRotas));
-        }
-
-        mostrarToast("Rota gravada com sucesso!");
-        limparFormularioRota();
-        atualizarInterfaceCompleta();
-        trocarAba('fechamentos');
-
-      } catch (err) {
-        console.error("Erro ao gravar rota:", err);
-        alert("Erro ao salvar: " + err.message);
-      } finally {
-        salvandoOperacao = false;
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Gravar Lançamento da Rota`;
-      }
-    };
-
-    window.excluirRota = async (id) => {
-      if (perfilAtivo !== 'ADMIN') {
-        alert("Apenas administradores podem excluir registros.");
-        return;
-      }
-      if (!confirm("Deseja apagar este registro de rota?")) return;
-
-      if (isFirebaseConnected && db && !id.startsWith("loc_")) {
-        try {
-          await deleteDoc(doc(db, "rotas", id));
-        } catch (e) {
-          console.error("Erro ao excluir do Firestore:", e);
-        }
-      }
-
-      listaRotas = listaRotas.filter(r => r.id !== id);
-      if (!isFirebaseConnected) {
-        localStorage.setItem('sys_rotas', JSON.stringify(listaRotas));
-      }
-
-      mostrarToast("Rota removida!");
-      atualizarInterfaceCompleta();
-    };
-
-    // Cadastros CRUD com Trava
-    window.gravarMotorista = async (e) => {
-      e.preventDefault();
-      const nome = document.getElementById('cad-mot-nome').value.trim();
-      const apelido = document.getElementById('cad-mot-apelido').value.trim().toUpperCase();
-      const item = { nome, apelido, createdAt: new Date().toISOString() };
-
-      const btn = document.getElementById('btn-cad-mot');
-      btn.disabled = true;
-
-      try {
-        if (isFirebaseConnected && db) {
-          const docRef = await addDoc(collection(db, "motoristas"), item);
-          item.id = docRef.id;
-        } else {
-          item.id = "mot_" + Date.now();
-          localStorage.setItem('sys_mot', JSON.stringify([...listaMotoristas, item]));
-        }
-        listaMotoristas.push(item);
-        mostrarToast("Motorista salvo!");
-        e.target.reset();
-        atualizarInterfaceCompleta();
-      } catch (err) {
-        alert("Erro ao salvar motorista: " + err.message);
-      } finally {
-        btn.disabled = false;
-      }
-    };
-
-    window.excluirMotorista = async (id) => {
-      if (!confirm("Excluir este motorista?")) return;
-      if (isFirebaseConnected && db && !id.startsWith("mot_")) {
-        try { await deleteDoc(doc(db, "motoristas", id)); } catch (e) {}
-      }
-      listaMotoristas = listaMotoristas.filter(m => m.id !== id);
-      if (!isFirebaseConnected) localStorage.setItem('sys_mot', JSON.stringify(listaMotoristas));
-      atualizarInterfaceCompleta();
-    };
-
-    window.gravarSeguranca = async (e) => {
-      e.preventDefault();
-      const nome = document.getElementById('cad-seg-nome').value.trim();
-      const apelido = document.getElementById('cad-seg-apelido').value.trim().toUpperCase();
-      const item = { nome, apelido, createdAt: new Date().toISOString() };
-
-      const btn = document.getElementById('btn-cad-seg');
-      btn.disabled = true;
-
-      try {
-        if (isFirebaseConnected && db) {
-          const docRef = await addDoc(collection(db, "segurancas"), item);
-          item.id = docRef.id;
-        } else {
-          item.id = "seg_" + Date.now();
-          localStorage.setItem('sys_seg', JSON.stringify([...listaSegurancas, item]));
-        }
-        listaSegurancas.push(item);
-        mostrarToast("Segurança salvo!");
-        e.target.reset();
-        atualizarInterfaceCompleta();
-      } catch (err) {
-        alert("Erro ao salvar segurança: " + err.message);
-      } finally {
-        btn.disabled = false;
-      }
-    };
-
-    window.excluirSeguranca = async (id) => {
-      if (!confirm("Excluir este segurança?")) return;
-      if (isFirebaseConnected && db && !id.startsWith("seg_")) {
-        try { await deleteDoc(doc(db, "segurancas", id)); } catch (e) {}
-      }
-      listaSegurancas = listaSegurancas.filter(s => s.id !== id);
-      if (!isFirebaseConnected) localStorage.setItem('sys_seg', JSON.stringify(listaSegurancas));
-      atualizarInterfaceCompleta();
-    };
-
-    window.gravarVeiculo = async (e) => {
-      e.preventDefault();
-      const marca = document.getElementById('cad-vei-marca').value.trim();
-      const modelo = document.getElementById('cad-vei-modelo').value.trim();
-      const placa = document.getElementById('cad-vei-placa').value.trim().toUpperCase();
-      const proprietario = document.getElementById('cad-vei-proprietario').value;
-      const item = { marca, modelo, placa, proprietario, createdAt: new Date().toISOString() };
-
-      const btn = document.getElementById('btn-cad-vei');
-      btn.disabled = true;
-
-      try {
-        if (isFirebaseConnected && db) {
-          const docRef = await addDoc(collection(db, "veiculos"), item);
-          item.id = docRef.id;
-        } else {
-          item.id = "vei_" + Date.now();
-          localStorage.setItem('sys_vei', JSON.stringify([...listaVeiculos, item]));
-        }
-        listaVeiculos.push(item);
-        mostrarToast("Veículo salvo!");
-        e.target.reset();
-        atualizarInterfaceCompleta();
-      } catch (err) {
-        alert("Erro ao salvar veículo: " + err.message);
-      } finally {
-        btn.disabled = false;
-      }
-    };
-
-    window.excluirVeiculo = async (id) => {
-      if (!confirm("Excluir este veículo?")) return;
-      if (isFirebaseConnected && db && !id.startsWith("vei_")) {
-        try { await deleteDoc(doc(db, "veiculos", id)); } catch (e) {}
-      }
-      listaVeiculos = listaVeiculos.filter(v => v.id !== id);
-      if (!isFirebaseConnected) localStorage.setItem('sys_vei', JSON.stringify(listaVeiculos));
-      atualizarInterfaceCompleta();
-    };
-
-    // ============================================================
-    // 5. ATUALIZAÇÃO GERAL DA INTERFACE & RESTRIÇÃO DE ACESSO
-    // ============================================================
-    function atualizarInterfaceCompleta() {
-      // 1. Atualizar Selects do Formulário
-      const selPlaca = document.getElementById('campo-placa-carro');
-      const selMot = document.getElementById('campo-motorista');
-      const selSeg = document.getElementById('campo-seguranca');
-
-      const vPlaca = selPlaca.value;
-      const vMot = selMot.value;
-      const vSeg = selSeg.value;
-
-      selPlaca.innerHTML = '<option value="">Selecione o veículo...</option>' + 
-        listaVeiculos.map(v => `<option value="${v.placa}">${v.placa} - ${v.marca} ${v.modelo} (${v.proprietario})</option>`).join('');
-
-      selMot.innerHTML = '<option value="">Selecione o motorista...</option>' + 
-        listaMotoristas.map(m => `<option value="${m.apelido}">${m.apelido} (${m.nome})</option>`).join('');
-
-      selSeg.innerHTML = '<option value="">Selecione o segurança...</option>' + 
-        listaSegurancas.map(s => `<option value="${s.apelido}">${s.apelido} (${s.nome})</option>`).join('');
-
-      if (vPlaca) selPlaca.value = vPlaca;
-      if (vMot) selMot.value = vMot;
-      if (vSeg) selSeg.value = vSeg;
-
-      // 2. Renderizar Tabelas de Cadastros
-      renderizarTabelasCadastros();
-
-      // 3. Atualizar Seletor de Perfil
-      renderizarMenuPerfis();
-
-      // 4. Renderizar Fechamentos e Histórico
-      popularFiltrosFechamento();
-      renderizarFechamentos();
-      renderizarHistorico();
-    }
-
-    function renderizarTabelasCadastros() {
-      document.getElementById('tabela-motoristas').innerHTML = listaMotoristas.map(m => `
-        <tr class="hover:bg-slate-50">
-          <td class="py-2.5 px-3 font-bold text-slate-800">${m.apelido}</td>
-          <td class="py-2.5 px-3 text-slate-600">${m.nome}</td>
-          <td class="py-2.5 px-3 text-center">
-            <button onclick="excluirMotorista('${m.id}')" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash-can"></i></button>
-          </td>
-        </tr>
-      `).join('');
-
-      document.getElementById('tabela-segurancas').innerHTML = listaSegurancas.map(s => `
-        <tr class="hover:bg-slate-50">
-          <td class="py-2.5 px-3 font-bold text-slate-800">${s.apelido}</td>
-          <td class="py-2.5 px-3 text-slate-600">${s.nome}</td>
-          <td class="py-2.5 px-3 text-center">
-            <button onclick="excluirSeguranca('${s.id}')" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash-can"></i></button>
-          </td>
-        </tr>
-      `).join('');
-
-      document.getElementById('tabela-veiculos').innerHTML = listaVeiculos.map(v => `
-        <tr class="hover:bg-slate-50">
-          <td class="py-2.5 px-3 font-black text-slate-900">${v.placa}</td>
-          <td class="py-2.5 px-3 text-slate-700">${v.marca} ${v.modelo}</td>
-          <td class="py-2.5 px-3 text-slate-500">${v.proprietario}</td>
-          <td class="py-2.5 px-3 text-center">
-            <button onclick="excluirVeiculo('${v.id}')" class="text-rose-500 hover:text-rose-700 p-1"><i class="fa-solid fa-trash-can"></i></button>
-          </td>
-        </tr>
-      `).join('');
-    }
-
-    function renderizarMenuPerfis() {
-      const container = document.getElementById('lista-perfis-prestadores');
-      const prestadores = new Set();
-      listaMotoristas.forEach(m => prestadores.add(m.apelido));
-      listaSegurancas.forEach(s => prestadores.add(s.apelido));
-
-      container.innerHTML = Array.from(prestadores).sort().map(p => `
-        <button onclick="definirPerfil('${p}')" class="w-full text-left px-3 py-1.5 rounded-lg hover:bg-slate-100 font-semibold flex items-center justify-between text-slate-700">
-          <span><i class="fa-solid fa-user text-slate-400 mr-2"></i> ${p}</span>
-          ${perfilAtivo === p ? '<i class="fa-solid fa-check text-blue-600 text-xs"></i>' : ''}
-        </button>
-      `).join('');
-    }
-
-    window.definirPerfil = (perfil) => {
-      perfilAtivo = perfil;
-      document.getElementById('menu-usuario').classList.add('hidden');
-
-      const tagAlerta = document.getElementById('tag-alerta-prestador');
-      const btnIcone = document.getElementById('perfil-icone-btn');
-      const btnNome = document.getElementById('perfil-nome-btn');
-      const lblAtual = document.getElementById('lbl-perfil-atual');
-
-      if (perfil === 'ADMIN') {
-        btnIcone.className = "fa-solid fa-user-shield text-blue-400";
-        btnNome.innerText = "Admin";
-        lblAtual.innerText = "Administrador Geral";
-        tagAlerta.classList.add('hidden');
-
-        // Mostra abas de admin
-        document.getElementById('d-tab-cadastros').classList.remove('hidden');
-        document.getElementById('m-tab-cadastros').classList.remove('hidden');
-        document.getElementById('btn-gravar-rota').disabled = false;
-        document.getElementById('fech-view-titulo').innerText = "Fechamentos Consolidados por Quinzena";
-        document.getElementById('fech-view-subtitulo').innerText = "Selecione o ciclo de quitação para ver a apuração individual.";
-      } else {
-        btnIcone.className = "fa-solid fa-user text-amber-400";
-        btnNome.innerText = perfil;
-        lblAtual.innerText = `Prestador: ${perfil}`;
-        tagAlerta.classList.remove('hidden');
-        document.getElementById('tag-nome-prestador').innerText = perfil;
-
-        // Oculta abas proibidas
-        document.getElementById('d-tab-cadastros').classList.add('hidden');
-        document.getElementById('m-tab-cadastros').classList.add('hidden');
-        document.getElementById('fech-view-titulo').innerText = `Meus Pagamentos (${perfil})`;
-        document.getElementById('fech-view-subtitulo').innerText = `Visualização exclusiva dos seus pagamentos e viagens apuradas.`;
-
-        trocarAba('fechamentos');
-      }
-
-      renderizarMenuPerfis();
-      popularFiltrosFechamento();
-      renderizarFechamentos();
-      renderizarHistorico();
-      mostrarToast(`Perfil ativo: ${perfil === 'ADMIN' ? 'Administrador' : perfil}`);
-    };
-
-    window.toggleMenuUsuario = () => {
-      document.getElementById('menu-usuario').classList.toggle('hidden');
-    };
-
-    // Popula Filtros da Quinzena
-    function popularFiltrosFechamento() {
-      const selCiclo = document.getElementById('filtro-fech-ciclo');
-      const selPessoa = document.getElementById('filtro-fech-pessoa');
-
-      // Ciclos disponíveis
-      const ciclosMap = new Map();
-      listaRotas.forEach(r => {
-        const info = calcularDataPagamento(r.data);
-        if (!ciclosMap.has(info.dataIso)) {
-          ciclosMap.set(info.dataIso, {
-            dataIso: info.dataIso,
-            titulo: `Pagamento: ${info.dataFormatada} (${info.periodoNome})`
-          });
-        }
-      });
-
-      const ciclos = Array.from(ciclosMap.values()).sort((a, b) => b.dataIso.localeCompare(a.dataIso));
-      const valCicloAtual = selCiclo.value;
-
-      if (ciclos.length === 0) {
-        selCiclo.innerHTML = '<option value="">Nenhum ciclo ativo</option>';
-      } else {
-        selCiclo.innerHTML = ciclos.map(c => `<option value="${c.dataIso}">${c.titulo}</option>`).join('');
-        if (valCicloAtual && ciclosMap.has(valCicloAtual)) selCiclo.value = valCicloAtual;
-      }
-
-      // Prestadores
-      if (perfilAtivo === 'ADMIN') {
-        selPessoa.classList.remove('hidden');
-        const nomes = new Set();
-        listaRotas.forEach(r => {
-          if (r.motorista) nomes.add(r.motorista);
-          if (r.seguranca) nomes.add(r.seguranca);
-        });
-        const valPessoaAtual = selPessoa.value;
-        selPessoa.innerHTML = '<option value="">Todos os Prestadores</option>' + 
-          Array.from(nomes).sort().map(n => `<option value="${n}">${n}</option>`).join('');
-        if (valPessoaAtual) selPessoa.value = valPessoaAtual;
-      } else {
-        selPessoa.classList.add('hidden');
-      }
-    }
-
-    // Renderização dos Fechamentos Quinzenais
-    window.renderizarFechamentos = () => {
-      const container = document.getElementById('grid-fechamento-cards');
-      const emptyState = document.getElementById('empty-state-fechamento');
-      container.innerHTML = ""; // LIMPA ANTES DE DESENHAR (CRÍTICO)
-
-      const cicloEscolhido = document.getElementById('filtro-fech-ciclo').value;
-      const pessoaFiltro = perfilAtivo === 'ADMIN' ? document.getElementById('filtro-fech-pessoa').value : perfilAtivo;
-
-      if (!cicloEscolhido || listaRotas.length === 0) {
-        emptyState.classList.remove('hidden');
-        document.getElementById('card-fech-qtd').innerText = "0";
-        document.getElementById('card-fech-mot').innerText = "R$ 0,00";
-        document.getElementById('card-fech-seg').innerText = "R$ 0,00";
-        document.getElementById('card-fech-total').innerText = "R$ 0,00";
-        return;
-      }
-
-      // Rotas do ciclo
-      let rotasCiclo = listaRotas.filter(r => calcularDataPagamento(r.data).dataIso === cicloEscolhido);
-
-      // Filtro de privacidade para prestador
-      if (perfilAtivo !== 'ADMIN') {
-        rotasCiclo = rotasCiclo.filter(r => r.motorista === perfilAtivo || r.seguranca === perfilAtivo);
-      }
-
-      if (rotasCiclo.length === 0) {
-        emptyState.classList.remove('hidden');
-        return;
-      }
-      emptyState.classList.add('hidden');
-
-      // Agrupamento por prestador
-      const fechamentos = {};
-
-      rotasCiclo.forEach(r => {
-        // Motorista
-        const mot = r.motorista;
-        if (mot && (perfilAtivo === 'ADMIN' || perfilAtivo === mot)) {
-          if (!fechamentos[mot]) {
-            fechamentos[mot] = {
-              nome: mot,
-              ehMotorista: true,
-              servicos: 0,
-              diarias: 0,
-              adicionais: 0,
-              aluguel: 0,
-              reembolsoKm: 0,
-              kmTotal: 0,
-              pedagios: 0,
-              totalGeral: 0,
-              rotas: []
-            };
-          }
-          fechamentos[mot].servicos += 1;
-          fechamentos[mot].diarias += r.motDiaria;
-          fechamentos[mot].adicionais += r.motAdic;
-          fechamentos[mot].aluguel += r.motAluguel;
-          fechamentos[mot].reembolsoKm += r.motKm;
-          fechamentos[mot].kmTotal += r.kmTotal;
-          fechamentos[mot].pedagios += r.motPedagio;
-          fechamentos[mot].totalGeral += r.subtotalMotorista;
-          fechamentos[mot].rotas.push(r);
-        }
-
-        // Segurança
-        const seg = r.seguranca;
-        if (seg && (perfilAtivo === 'ADMIN' || perfilAtivo === seg)) {
-          if (!fechamentos[seg]) {
-            fechamentos[seg] = {
-              nome: seg,
-              ehMotorista: false,
-              servicos: 0,
-              diarias: 0,
-              adicionais: 0,
-              aluguel: 0,
-              reembolsoKm: 0,
-              kmTotal: 0,
-              pedagios: 0,
-              totalGeral: 0,
-              rotas: []
-            };
-          }
-          fechamentos[seg].servicos += 1;
-          fechamentos[seg].diarias += r.segDiaria;
-          fechamentos[seg].adicionais += r.segAdic;
-          fechamentos[seg].totalGeral += r.subtotalSeguranca;
-          fechamentos[seg].rotas.push(r);
-        }
-      });
-
-      // Totais dos cards topo
-      let totalMot = 0;
-      let totalSeg = 0;
-      rotasCiclo.forEach(r => {
-        if (perfilAtivo === 'ADMIN' || r.motorista === perfilAtivo) totalMot += r.subtotalMotorista;
-        if (perfilAtivo === 'ADMIN' || r.seguranca === perfilAtivo) totalSeg += r.subtotalSeguranca;
-      });
-
-      document.getElementById('card-fech-qtd').innerText = rotasCiclo.length;
-      document.getElementById('card-fech-mot').innerText = fmtBRL(totalMot);
-      document.getElementById('card-fech-seg').innerText = fmtBRL(totalSeg);
-      document.getElementById('card-fech-total').innerText = fmtBRL(totalMot + totalSeg);
-
-      let listaCards = Object.values(fechamentos);
-      if (pessoaFiltro) {
-        listaCards = listaCards.filter(p => p.nome.toLowerCase() === pessoaFiltro.toLowerCase());
-      }
-
-      if (listaCards.length === 0) {
-        container.innerHTML = '<div class="col-span-2 p-8 text-center text-xs text-slate-400">Nenhum dado para o prestador filtrado.</div>';
-        return;
-      }
-
-      const infoData = calcularDataPagamento(rotasCiclo[0].data);
-
-      container.innerHTML = listaCards.map(p => `
-        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm flex flex-col justify-between hover:border-blue-300 transition space-y-4">
-          <div>
-            <div class="flex items-start justify-between border-b border-slate-100 pb-3">
-              <div class="flex items-center gap-2.5">
-                <span class="w-9 h-9 rounded-xl ${p.ehMotorista ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'} flex items-center justify-center font-bold text-xs">
-                  <i class="fa-solid ${p.ehMotorista ? 'fa-car' : 'fa-shield-halved'}"></i>
-                </span>
-                <div>
-                  <h3 class="text-base font-black text-slate-900">${p.nome}</h3>
-                  <span class="text-[11px] font-semibold text-slate-400">${p.ehMotorista ? 'Motorista' : 'Segurança'} • ${p.servicos} Serviços</span>
-                </div>
-              </div>
-              <div class="text-right">
-                <span class="text-[10px] uppercase font-bold text-slate-400 block">Pagamento</span>
-                <span class="text-xs font-black text-blue-600">${infoData.dataFormatada}</span>
-              </div>
-            </div>
-
-            <!-- Discriminação dos Valores -->
-            <div class="py-3 text-xs space-y-2 text-slate-600">
-              <div class="flex justify-between">
-                <span>Serviços / Diárias (${p.servicos}×):</span>
-                <b class="text-slate-800">${fmtBRL(p.diarias)}</b>
-              </div>
-              <div class="flex justify-between">
-                <span>Adicionais (+5h30):</span>
-                <b class="text-slate-800">${fmtBRL(p.adicionais)}</b>
-              </div>
-              ${p.ehMotorista ? `
-                <div class="flex justify-between">
-                  <span>Aluguel do Carro:</span>
-                  <b class="text-slate-800">${fmtBRL(p.aluguel)}</b>
-                </div>
-                <div class="flex justify-between">
-                  <span>Reembolso KM (${p.kmTotal.toFixed(1)} km × 0,68):</span>
-                  <b class="text-slate-800">${fmtBRL(p.reembolsoKm)}</b>
-                </div>
-                <div class="flex justify-between">
-                  <span>Pedágios (100%):</span>
-                  <b class="text-slate-800">${fmtBRL(p.pedagios)}</b>
-                </div>
-              ` : ''}
-            </div>
-          </div>
-
-          <!-- Totalizador e Ações -->
-          <div class="pt-3 border-t border-slate-100 space-y-3">
-            <div class="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
-              <span class="text-xs font-bold text-slate-700">TOTAL:</span>
-              <span class="text-lg font-black text-blue-600">${fmtBRL(p.totalGeral)}</span>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <button onclick="abrirModalRecibo('${p.nome}', '${cicloEscolhido}')" class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm">
-                <i class="fa-solid fa-file-invoice"></i> Ver Recibo / Detalhes
-              </button>
-              <button onclick="enviarWhatsAppCard('${p.nome}', '${cicloEscolhido}')" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition" title="Compartilhar no WhatsApp">
-                <i class="fa-brands fa-whatsapp text-sm"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      `).join('');
-    };
-
-    // Renderização do Histórico de Rotas
-    window.renderizarHistorico = (listaFiltrada = null) => {
-      const tbody = document.getElementById('tabela-corpo-rotas');
-      const emptyState = document.getElementById('empty-state-rotas');
-      tbody.innerHTML = ""; // LIMPA ANTES DE DESENHAR (CRÍTICO)
-
-      let dados = listaFiltrada || listaRotas;
-
-      // Se estiver logado como prestador, vê APENAS as viagens que ele fez
-      if (perfilAtivo !== 'ADMIN') {
-        dados = dados.filter(r => r.motorista === perfilAtivo || r.seguranca === perfilAtivo);
-      }
-
-      document.getElementById('badge-total-rotas').innerText = dados.length;
-
-      if (dados.length === 0) {
-        emptyState.classList.remove('hidden');
-        return;
-      }
-      emptyState.classList.add('hidden');
-
-      tbody.innerHTML = dados.map(item => {
-        const infoPgto = calcularDataPagamento(item.data);
-        return `
-          <tr class="hover:bg-blue-50/40 transition">
-            <td class="py-3 px-3.5 font-bold text-slate-800 whitespace-nowrap">${fmtDataBR(item.data)}</td>
-            <td class="py-3 px-3.5 whitespace-nowrap">
-              <span class="px-2 py-0.5 rounded-md text-[11px] font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
-                ${infoPgto.dataFormatada}
-              </span>
-            </td>
-            <td class="py-3 px-3.5 whitespace-nowrap">
-              <div class="font-medium text-slate-700">${item.horaInicio} às ${item.horaFinal}</div>
-              <div class="text-[11px] font-bold ${item.temAdicional ? 'text-amber-600' : 'text-slate-400'}">${item.duracaoFormatada} ${item.temAdicional ? '(+5h30)' : ''}</div>
-            </td>
-            <td class="py-3 px-3.5 font-black text-slate-700 tracking-wider">${item.placaCarro || '—'}</td>
-            <td class="py-3 px-3.5 font-bold text-slate-900">${item.motorista}</td>
-            <td class="py-3 px-3.5 font-semibold text-slate-700">${item.seguranca}</td>
-            <td class="py-3 px-3.5 text-center text-slate-600 whitespace-nowrap">
-              <span>${item.kmTotal} km</span> • <span>${fmtBRL(item.pedagioTotal)}</span>
-            </td>
-            <td class="py-3 px-3.5 text-right font-black text-blue-700">${fmtBRL(item.subtotalMotorista)}</td>
-            <td class="py-3 px-3.5 text-right font-black text-emerald-700">${fmtBRL(item.subtotalSeguranca)}</td>
-            <td class="py-3 px-3.5 text-right font-black text-slate-900">${fmtBRL(item.totalRota)}</td>
-            <td class="py-3 px-3.5 text-center col-acoes-item">
-              ${perfilAtivo === 'ADMIN' ? `
-                <button onclick="excluirRota('${item.id}')" class="p-1.5 text-rose-500 hover:bg-rose-100 rounded-lg transition" title="Excluir Rota">
-                  <i class="fa-solid fa-trash-can"></i>
-                </button>
-              ` : `
-                <span class="text-slate-300 text-xs"><i class="fa-solid fa-lock"></i></span>
-              `}
-            </td>
-          </tr>
-        `;
-      }).join('');
-    };
-
-    window.filtrarHistorico = () => {
-      const q = document.getElementById('filtro-busca-hist').value.toLowerCase().trim();
-      if (!q) {
-        renderizarHistorico();
-        return;
-      }
-      const filtrados = listaRotas.filter(r => 
-        (r.motorista && r.motorista.toLowerCase().includes(q)) ||
-        (r.seguranca && r.seguranca.toLowerCase().includes(q)) ||
-        (r.placaCarro && r.placaCarro.toLowerCase().includes(q)) ||
-        (r.data && r.data.includes(q))
-      );
-      renderizarHistorico(filtrados);
-    };
-
-    // ============================================================
-    // 6. RECIBO FORMAL, WHATSAPP & EXPORTAÇÃO CSV
-    // ============================================================
-    window.abrirModalRecibo = (nomePessoa, dataCiclo) => {
-      const rotas = listaRotas.filter(r => {
-        const info = calcularDataPagamento(r.data);
-        return info.dataIso === dataCiclo && (r.motorista === nomePessoa || r.seguranca === nomePessoa);
-      });
-
-      if (rotas.length === 0) return;
-
-      const infoPgto = calcularDataPagamento(rotas[0].data);
-      let servicos = 0;
-      let diarias = 0;
-      let adicionais = 0;
-      let aluguel = 0;
-      let reembolsoKm = 0;
-      let kmTotal = 0;
-      let pedagios = 0;
-      let totalGeral = 0;
-      let ehMotorista = false;
-
-      rotas.forEach(r => {
-        if (r.motorista === nomePessoa) {
-          ehMotorista = true;
-          servicos += 1;
-          diarias += r.motDiaria;
-          adicionais += r.motAdic;
-          aluguel += r.motAluguel;
-          reembolsoKm += r.motKm;
-          kmTotal += r.kmTotal;
-          pedagios += r.motPedagio;
-          totalGeral += r.subtotalMotorista;
-        } else if (r.seguranca === nomePessoa) {
-          servicos += 1;
-          diarias += r.segDiaria;
-          adicionais += r.segAdic;
-          totalGeral += r.subtotalSeguranca;
-        }
-      });
-
-      reciboModalAtivo = {
-        nomePessoa,
-        dataPagamentoFormatada: infoPgto.dataFormatada,
-        periodoNome: infoPgto.periodoNome,
-        servicos,
-        diarias,
-        adicionais,
-        aluguel,
-        reembolsoKm,
-        kmTotal,
-        pedagios,
-        totalGeral,
-        ehMotorista,
-        rotas
+      const calc = calcularRota();
+      const dt = document.getElementById('dataRota').value;
+      const ciclo = calcularCicloPagamento(dt);
+
+      const novaRota = {
+        data: dt,
+        horaInicio: document.getElementById('horaInicio').value,
+        horaFinal: document.getElementById('horaFinal').value,
+        duracao: calc.duracaoFormatada,
+        atingiu5h30: calc.atingiu5h30,
+        km: Math.max(0, Number(document.getElementById('kmTotal').value) || 0),
+        placa: document.getElementById('placaCarro').value,
+        pedagio: calc.pedagio,
+        motorista: document.getElementById('motoristaSelect').value,
+        seguranca: document.getElementById('segurancaSelect').value,
+        valDiaria: calc.valDiaria,
+        valAdic: calc.valAdic,
+        valKm: calc.valKm,
+        valAluguel: calc.valAluguel,
+        subMotorista: calc.subMotorista,
+        subSeguranca: calc.subSeguranca,
+        cicloId: ciclo.cicloId,
+        dataPagamento: ciclo.dataPagamentoStr,
+        criadoPor: usuarioLogado ? usuarioLogado.email : "desconhecido",
+        createdAt: new Date().toISOString()
       };
 
-      const container = document.getElementById('comprovante-print-area');
-      container.innerHTML = `
-        <div class="border-b border-slate-200 pb-3 flex justify-between items-start">
+      try {
+        const docRef = await addDoc(collection(db, "rotas"), novaRota);
+        novaRota.id = docRef.id;
+
+        const local = JSON.parse(localStorage.getItem('sys_rotas_backup') || '[]');
+        local.unshift(novaRota);
+        localStorage.setItem('sys_rotas_backup', JSON.stringify(local));
+
+        showToast("Lançamento gravado com sucesso!");
+        document.getElementById('form-rota').reset();
+        calcularRota();
+        await carregarRotas();
+
+      } catch (err) {
+        console.error("Erro ao salvar:", err);
+        showToast("Erro ao gravar: " + err.message, false);
+      } finally {
+        enviando = false;
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> Gravar Lançamento`;
+      }
+    });
+
+    window.excluirRota = async (id) => {
+      if (!confirm("Deseja apagar esta rota?")) return;
+      try {
+        await deleteDoc(doc(db, "rotas", id));
+      } catch (e) {
+        console.warn(e);
+      }
+      let local = JSON.parse(localStorage.getItem('sys_rotas_backup') || '[]');
+      local = local.filter(r => r.id !== id);
+      localStorage.setItem('sys_rotas_backup', JSON.stringify(local));
+      showToast("Registro excluído.");
+      await carregarRotas();
+    };
+
+    // Fechamentos com Proteção Financeira
+    function renderizarFechamentos() {
+      const box = document.getElementById('box-demonstrativo-fechamento');
+      const fCiclo = document.getElementById('filtro-ciclo');
+      const fPessoa = document.getElementById('filtro-pessoa');
+
+      if (!usuarioLogado) return;
+      const isAdmin = usuarioLogado.role === 'admin';
+
+      // Preenche os ciclos
+      const ciclos = [...new Set(cacheRotas.map(r => r.dataPagamento).filter(Boolean))];
+      fCiclo.innerHTML = ciclos.length ? ciclos.map(c => `<option value="${c}">Pagamento em: ${c}</option>`).join('') : '<option value="">Sem fechamentos</option>';
+
+      // Se for admin, preenche as pessoas para escolher
+      if (isAdmin) {
+        const pessoas = [
+          ...cadMotoristas.map(m => ({ apelido: m.apelido, tipo: 'Motorista' })),
+          ...cadSegurancas.map(s => ({ apelido: s.apelido, tipo: 'Segurança' }))
+        ];
+        fPessoa.innerHTML = pessoas.map(p => `<option value="${p.apelido}">${p.apelido} (${p.tipo})</option>`).join('');
+      }
+
+      const cicloSel = fCiclo.value;
+      const pessoaAlvo = isAdmin ? fPessoa.value : usuarioLogado.apelido;
+
+      if (!cicloSel || !pessoaAlvo) {
+        box.innerHTML = `<p class="text-xs text-slate-400 text-center">Nenhum fechamento disponível para este ciclo.</p>`;
+        return;
+      }
+
+      // Filtra estritamente as viagens da pessoa
+      const rotasPessoa = cacheRotas.filter(r => 
+        r.dataPagamento === cicloSel && (r.motorista === pessoaAlvo || r.seguranca === pessoaAlvo)
+      );
+
+      const isMotorista = cadMotoristas.some(m => m.apelido === pessoaAlvo);
+
+      let totServicos = rotasPessoa.length;
+      let totDiarias = totServicos * CONSTS.DIARIA;
+      let totAdicionais = rotasPessoa.filter(r => r.atingiu5h30).length * CONSTS.ADICIONAL_5H30;
+      let totAluguel = isMotorista ? totServicos * CONSTS.ALUGUEL_CARRO : 0;
+      let totKm = isMotorista ? rotasPessoa.reduce((acc, r) => acc + (r.valKm || 0), 0) : 0;
+      let totPedagio = isMotorista ? rotasPessoa.reduce((acc, r) => acc + (r.pedagio || 0), 0) : 0;
+      let totalGeral = totDiarias + totAdicionais + totAluguel + totKm + totPedagio;
+
+      box.innerHTML = `
+        <div class="flex justify-between items-center border-b pb-3">
           <div>
-            <span class="text-[10px] font-extrabold uppercase tracking-widest text-blue-600 block">Demonstrativo de Fechamento Operacional</span>
-            <h2 class="text-lg font-black text-slate-900">${nomePessoa}</h2>
-            <p class="text-xs text-slate-500">${infoPgto.periodoNome}</p>
+            <h3 class="font-bold text-base text-slate-900">${pessoaAlvo.toUpperCase()}</h3>
+            <p class="text-xs text-slate-500">Função: ${isMotorista ? 'Motorista' : 'Segurança'} | Pagamento: <b>${cicloSel}</b></p>
           </div>
-          <div class="text-right">
-            <span class="text-[10px] uppercase font-bold text-slate-400 block">Pagamento em</span>
-            <span class="text-sm font-black text-blue-600 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-200 inline-block">${infoPgto.dataFormatada}</span>
-          </div>
+          <span class="text-2xl font-black text-blue-600">${fmtBRL(totalGeral)}</span>
         </div>
 
-        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2 text-xs">
-          <div class="flex justify-between py-1 border-b border-slate-200 font-semibold text-slate-700">
-            <span>Item / Discriminação</span>
-            <span>Valor (R$)</span>
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+          <div class="p-2.5 rounded-lg bg-white border border-slate-200">
+            <span class="text-slate-400 block">Serviços Executados</span>
+            <span class="font-bold text-slate-800">${totServicos} diárias (${fmtBRL(totDiarias)})</span>
           </div>
-          <div class="flex justify-between text-slate-600">
-            <span>Serviços Realizados:</span>
-            <b class="text-slate-900">${servicos} serviços</b>
+          <div class="p-2.5 rounded-lg bg-white border border-slate-200">
+            <span class="text-slate-400 block">Adicionais +5h30</span>
+            <span class="font-bold text-slate-800">${fmtBRL(totAdicionais)}</span>
           </div>
-          <div class="flex justify-between text-slate-600">
-            <span>Diárias Operacionais:</span>
-            <b class="text-slate-900">${fmtBRL(diarias)}</b>
-          </div>
-          <div class="flex justify-between text-slate-600">
-            <span>Adicionais (+5h30):</span>
-            <b class="text-slate-900">${fmtBRL(adicionais)}</b>
-          </div>
-          ${ehMotorista ? `
-            <div class="flex justify-between text-slate-600">
-              <span>Aluguel do Veículo:</span>
-              <b class="text-slate-900">${fmtBRL(aluguel)}</b>
+          ${isMotorista ? `
+            <div class="p-2.5 rounded-lg bg-white border border-slate-200">
+              <span class="text-slate-400 block">Aluguel do Carro</span>
+              <span class="font-bold text-slate-800">${fmtBRL(totAluguel)}</span>
             </div>
-            <div class="flex justify-between text-slate-600">
-              <span>Reembolso KM (${kmTotal.toFixed(1)} km × 0,68):</span>
-              <b class="text-slate-900">${fmtBRL(reembolsoKm)}</b>
+            <div class="p-2.5 rounded-lg bg-white border border-slate-200">
+              <span class="text-slate-400 block">Reembolso KM</span>
+              <span class="font-bold text-slate-800">${fmtBRL(totKm)}</span>
             </div>
-            <div class="flex justify-between text-slate-600">
-              <span>Pedágios Comprovados:</span>
-              <b class="text-slate-900">${fmtBRL(pedagios)}</b>
+            <div class="p-2.5 rounded-lg bg-white border border-slate-200">
+              <span class="text-slate-400 block">Reembolso Pedágios</span>
+              <span class="font-bold text-slate-800">${fmtBRL(totPedagio)}</span>
             </div>
           ` : ''}
-          <div class="flex justify-between pt-2 border-t border-slate-300 text-sm font-black text-slate-900">
-            <span>TOTAL:</span>
-            <span class="text-blue-600">${fmtBRL(totalGeral)}</span>
-          </div>
-        </div>
-
-        <div class="space-y-1.5 pt-1">
-          <span class="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block">Viagens deste Fechamento</span>
-          <div class="max-h-36 overflow-y-auto divide-y divide-slate-100 text-xs border border-slate-200 rounded-xl">
-            ${rotas.map(r => `
-              <div class="p-2 flex justify-between items-center text-[11px] hover:bg-slate-50">
-                <span><b>${fmtDataBR(r.data)}</b> • ${r.horaInicio} às ${r.horaFinal} (${r.duracaoFormatada})</span>
-                <span class="font-bold text-slate-700">${fmtBRL(r.motorista === nomePessoa ? r.subtotalMotorista : r.subtotalSeguranca)}</span>
-              </div>
-            `).join('')}
-          </div>
         </div>
       `;
+    }
 
-      document.getElementById('modal-recibo').classList.remove('hidden');
-    };
+    document.getElementById('filtro-ciclo').addEventListener('change', renderizarFechamentos);
+    document.getElementById('filtro-pessoa').addEventListener('change', renderizarFechamentos);
 
-    window.fecharModalRecibo = () => {
-      document.getElementById('modal-recibo').classList.add('hidden');
-      reciboModalAtivo = null;
-    };
+    // Cadastros Admin
+    document.getElementById('form-cad-motorista').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nome = document.getElementById('cadMotNome').value.trim();
+      const apelido = document.getElementById('cadMotApelido').value.trim();
+      cadMotoristas.push({ id: "m_" + Date.now(), nome, apelido });
+      localStorage.setItem('sys_cad_mot', JSON.stringify(cadMotoristas));
+      document.getElementById('form-cad-motorista').reset();
+      atualizarSelects();
+      showToast("Motorista cadastrado!");
+    });
 
-    window.enviarWhatsAppModal = () => {
-      if (!reciboModalAtivo) return;
-      const f = reciboModalAtivo;
-      let texto = `*PAGAMENTO: ${f.dataPagamentoFormatada}*\n` +
-        `*PESSOA: ${f.nomePessoa}*\n\n` +
-        `Serviços: ${f.servicos}\n` +
-        `Diárias: ${fmtBRL(f.diarias)}\n` +
-        `Adicionais: ${fmtBRL(f.adicionais)}\n`;
+    document.getElementById('form-cad-seguranca').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const nome = document.getElementById('cadSegNome').value.trim();
+      const apelido = document.getElementById('cadSegApelido').value.trim();
+      cadSegurancas.push({ id: "s_" + Date.now(), nome, apelido });
+      localStorage.setItem('sys_cad_seg', JSON.stringify(cadSegurancas));
+      document.getElementById('form-cad-seguranca').reset();
+      atualizarSelects();
+      showToast("Segurança cadastrado!");
+    });
 
-      if (f.ehMotorista) {
-        texto += `Aluguel: ${fmtBRL(f.aluguel)}\n` +
-          `Reembolso KM: ${fmtBRL(f.reembolsoKm)}\n` +
-          `Pedágios: ${fmtBRL(f.pedagios)}\n`;
-      }
+    document.getElementById('form-cad-veiculo').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const placa = document.getElementById('cadVeicPlaca').value.trim().toUpperCase();
+      const modelo = document.getElementById('cadVeicModelo').value.trim().toUpperCase();
+      cadVeiculos.push({ id: "v_" + Date.now(), placa, modelo });
+      localStorage.setItem('sys_cad_veic', JSON.stringify(cadVeiculos));
+      document.getElementById('form-cad-veiculo').reset();
+      atualizarSelects();
+      showToast("Veículo cadastrado!");
+    });
 
-      texto += `\n*TOTAL: ${fmtBRL(f.totalGeral)}*`;
-
-      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
-      window.open(url, '_blank');
-    };
-
-    window.enviarWhatsAppCard = (nomePessoa, dataCiclo) => {
-      abrirModalRecibo(nomePessoa, dataCiclo);
-      enviarWhatsAppModal();
-    };
-
-    window.exportarRotasCSV = () => {
-      if (listaRotas.length === 0) {
-        alert("Sem rotas para exportar.");
-        return;
-      }
-      let csv = "Data;Pagamento_Previsto;Inicio;Fim;Duracao;Placa;Motorista;Seguranca;KM;Pedagio;Subtotal_Motorista;Subtotal_Seguranca;Total_Geral\n";
-      listaRotas.forEach(r => {
-        const info = calcularDataPagamento(r.data);
-        csv += `${r.data};${info.dataFormatada};${r.horaInicio};${r.horaFinal};${r.duracaoFormatada};${r.placaCarro || ''};${r.motorista};${r.seguranca};${r.kmTotal};${r.pedagioTotal};${r.subtotalMotorista};${r.subtotalSeguranca};${r.totalRota}\n`;
-      });
-      const blob = new Blob(["\uFEFF" + csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `rotas_${new Date().toISOString().slice(0, 10)}.csv`;
-      a.click();
-    };
-
-    // Navegação Principal de Abas
-    window.trocarAba = (aba) => {
-      if (perfilAtivo !== 'ADMIN' && aba === 'cadastros') {
-        alert("Aba restrita a administradores.");
-        return;
-      }
-
-      const abas = ['lancamento', 'cadastros', 'fechamentos', 'historico'];
-      abas.forEach(a => {
-        const view = document.getElementById(`view-${a}`);
-        const dBtn = document.getElementById(`d-tab-${a}`);
-        const mBtn = document.getElementById(`m-tab-${a}`);
-
-        if (a === aba) {
-          view.classList.remove('hidden');
-          if (dBtn) dBtn.className = "tab-btn px-4 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 bg-blue-600 text-white shadow-sm";
-          if (mBtn) {
-            mBtn.className = "mobile-tab-btn flex flex-col items-center gap-1 text-blue-600";
-            mBtn.querySelector('span').className = "text-[10px] font-bold";
-          }
-        } else {
-          view.classList.add('hidden');
-          if (dBtn) dBtn.className = "tab-btn px-4 py-1.5 rounded-lg text-xs font-semibold transition flex items-center gap-2 text-slate-300 hover:text-white";
-          if (mBtn) {
-            mBtn.className = "mobile-tab-btn flex flex-col items-center gap-1 text-slate-400";
-            mBtn.querySelector('span').className = "text-[10px] font-medium";
-          }
-        }
-      });
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    };
-
-    // Sub-abas de Cadastros
-    window.trocarSubCadastro = (sub) => {
-      ['motorista', 'seguranca', 'veiculo'].forEach(s => {
-        document.getElementById(`painel-cad-${s}`).classList.toggle('hidden', s !== sub);
-        const btn = document.getElementById(`subtab-${s}`);
-        if (s === sub) {
-          btn.className = "px-4 py-2 rounded-xl text-xs font-bold bg-blue-600 text-white shadow-sm";
-        } else {
-          btn.className = "px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-200";
-        }
-      });
-    };
-
-    // Inicialização ao carregar o DOM
-    window.addEventListener('DOMContentLoaded', () => {
-      const campoData = document.getElementById('campo-data');
-      if (campoData) campoData.value = new Date().toISOString().slice(0, 10);
-      executarCalculoEmTempoReal();
-      inicializarConexao();
+    document.getElementById('btn-limpar').addEventListener('click', () => {
+      document.getElementById('form-rota').reset();
+      calcularRota();
     });
   </script>
-
 </body>
 </html>
