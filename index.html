@@ -20,16 +20,18 @@
 </head>
 <body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col pb-16 md:pb-6">
 
-  <!-- TELA DE LOGIN (Exibida quando não autenticado) -->
+  <!-- TELA DE LOGIN -->
   <div id="auth-screen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
     <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
       <div class="text-center space-y-1">
         <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto text-xl mb-2">
           <i class="fa-solid fa-lock"></i>
         </div>
-        <h2 class="text-xl font-black text-slate-900">Acesso Restrito</h2>
-        <p class="text-xs text-slate-500">Informe suas credenciais para visualizar seus lançamentos.</p>
+        <h2 class="text-xl font-black text-slate-900">SystemDiaria</h2>
+        <p class="text-xs text-slate-500">Informe suas credenciais para acessar os lançamentos.</p>
       </div>
+
+      <div id="login-erro" class="hidden p-3 rounded-xl text-xs bg-rose-100 text-rose-700 font-semibold border border-rose-200"></div>
 
       <form id="form-login" class="space-y-3">
         <div>
@@ -41,17 +43,13 @@
           <input type="password" id="login-senha" placeholder="••••••••" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm">
         </div>
         <button type="submit" id="btn-login" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition shadow flex items-center justify-center gap-2">
-          <i class="fa-solid fa-right-to-bracket"></i> Entrar no Sistema
+          <i class="fa-solid fa-right-to-bracket"></i> Entrar
         </button>
       </form>
-
-      <div class="pt-2 border-t border-slate-100 text-[11px] text-slate-400 text-center">
-        SystemDiaria • Controle Individual Seguro
-      </div>
     </div>
   </div>
 
-  <!-- APLICAÇÃO PRINCIPAL (Visível após autenticação) -->
+  <!-- APLICAÇÃO PRINCIPAL -->
   <div id="app-container" class="hidden flex-1 flex flex-col">
     
     <!-- Topbar -->
@@ -80,7 +78,7 @@
         <i class="fa-solid fa-circle-plus"></i> Novo Lançamento
       </button>
       <button class="tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 flex items-center gap-2" data-tab="fechamentos">
-        <i class="fa-solid fa-wallet"></i> Meus Valores
+        <i class="fa-solid fa-wallet"></i> Extrato de Pagamento
       </button>
       <button id="tab-btn-cadastros" class="tab-btn px-4 py-2 rounded-xl text-xs sm:text-sm font-bold bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 flex items-center gap-2 hidden" data-tab="cadastros">
         <i class="fa-solid fa-address-book"></i> Cadastros (Admin)
@@ -90,15 +88,15 @@
     <!-- Conteúdo -->
     <main class="max-w-5xl mx-auto px-4 py-4 flex-1 w-full space-y-6">
 
-      <!-- Toast -->
+      <!-- Toast de Avisos -->
       <div id="toast" class="hidden p-3 rounded-xl text-xs font-semibold flex items-center justify-between shadow-lg mb-4 transition-all"></div>
 
-      <!-- ABA 1: LANÇAMENTOS (Acesso livre para todos) -->
+      <!-- ABA 1: LANÇAMENTOS -->
       <section id="aba-lancamentos" class="tab-pane space-y-6">
         
         <div class="bg-white rounded-xl border border-slate-200 p-3 sm:p-4 shadow-sm text-xs text-slate-600 flex flex-wrap gap-x-6 gap-y-2 justify-between items-center bg-gradient-to-r from-blue-50/60 to-indigo-50/60">
           <span class="font-bold text-slate-800 flex items-center gap-1.5">
-            <i class="fa-solid fa-sliders text-blue-600"></i> Tabela Operacional:
+            <i class="fa-solid fa-sliders text-blue-600"></i> Parâmetros Vigentes:
           </span>
           <span>Diária: <b>R$ 190,00</b></span>
           <span>+5h30: <b>R$ 30,00</b></span>
@@ -135,7 +133,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
                 <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">4. KM Total</label>
-                <input type="number" step="0.1" id="kmTotal" min="0" placeholder="Ex: 120" required class="calc-trigger w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold">
+                <input type="number" step="0.1" id="kmTotal" min="0" placeholder="0" class="calc-trigger w-full bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-sm font-semibold">
                 <span class="text-[11px] text-slate-400">× R$ 0,68 p/ Motorista</span>
               </div>
               <div>
@@ -160,12 +158,23 @@
               </div>
             </div>
 
-            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs sm:text-sm flex justify-between items-center">
+            <!-- Resumo ao vivo dos valores calculados para a rota -->
+            <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm">
               <div>
                 <span class="text-slate-500 font-semibold block text-[11px] uppercase">Duração Apurada</span>
                 <span id="calc-duracao" class="text-slate-900 font-bold text-base">0h 00m</span>
+                <p id="calc-tag-adic" class="text-[11px] text-slate-400">Não atingiu +5h30</p>
               </div>
-              <span id="calc-tag-adic" class="text-xs font-bold text-slate-400">Não atingiu +5h30</span>
+              <div>
+                <span class="text-slate-500 font-semibold block text-[11px] uppercase">Previsto Motorista</span>
+                <span id="calc-sub-mot" class="text-blue-600 font-bold text-base">R$ 0,00</span>
+                <p class="text-[11px] text-slate-400">Diária + Aluguel + KM + Pedágio</p>
+              </div>
+              <div>
+                <span class="text-slate-500 font-semibold block text-[11px] uppercase">Previsto Segurança</span>
+                <span id="calc-sub-seg" class="text-emerald-600 font-bold text-base">R$ 0,00</span>
+                <p class="text-[11px] text-slate-400">Diária + Adicional</p>
+              </div>
             </div>
 
             <div class="pt-2 flex flex-col sm:flex-row gap-3">
@@ -179,7 +188,7 @@
           </form>
         </div>
 
-        <!-- Tabela (Mostra apenas as viagens que o usuário participou) -->
+        <!-- Tabela -->
         <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-6 shadow-sm space-y-4">
           <div class="flex items-center justify-between">
             <h2 class="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
@@ -212,11 +221,10 @@
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
             <div>
               <h2 class="text-base font-bold text-slate-900">Extrato de Pagamento Quinquenal</h2>
-              <p class="text-xs text-slate-500">Apenas os valores vinculados à sua função.</p>
+              <p class="text-xs text-slate-500">Visualização exclusiva dos valores a receber.</p>
             </div>
             <div class="flex items-center gap-2">
               <select id="filtro-ciclo" class="bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-semibold"></select>
-              <!-- Filtro de pessoa só aparece para o Administrador -->
               <select id="filtro-pessoa" class="bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-semibold hidden"></select>
             </div>
           </div>
@@ -297,14 +305,6 @@
       ALUGUEL_CARRO: 60.00
     };
 
-    // Mapeamento automático de e-mail para apelido e papel
-    const MAPA_USUARIOS = {
-      "kaique@sistema.com": { apelido: "Kaique", role: "motorista", nome: "Andre Kaique Clorado" },
-      "anderson@sistema.com": { apelido: "Anderson", role: "motorista", nome: "Anderson Caetano de Souza" },
-      "jlima@sistema.com": { apelido: "J. Lima", role: "seguranca", nome: "Jessé Lima da Silva" },
-      "admin@sistema.com": { apelido: "Administrador", role: "admin", nome: "Gestor do Sistema" }
-    };
-
     const DADOS_BASE = {
       motoristas: [
         { id: "m1", nome: "Andre Kaique Clorado", apelido: "Kaique" },
@@ -328,7 +328,12 @@
     let cadSegurancas = JSON.parse(localStorage.getItem('sys_cad_seg')) || DADOS_BASE.segurancas;
     let cadVeiculos = JSON.parse(localStorage.getItem('sys_cad_veic')) || DADOS_BASE.veiculos;
 
-    const fmtBRL = (v) => Number(v || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    // Utilitário de formatação blindado contra NaN
+    const numLimpo = (n) => {
+      const v = parseFloat(n);
+      return isNaN(v) ? 0 : v;
+    };
+    const fmtBRL = (v) => numLimpo(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
     function showToast(msg, isSuccess = true) {
       const toast = document.getElementById('toast');
@@ -337,27 +342,31 @@
       }`;
       toast.innerHTML = `<span><i class="fa-solid ${isSuccess ? 'fa-check-circle' : 'fa-triangle-exclamation'} mr-2"></i>${msg}</span>`;
       toast.classList.remove('hidden');
-      setTimeout(() => toast.classList.add('hidden'), 4000);
+      setTimeout(() => toast.classList.add('hidden'), 5000);
     }
 
-    // Monitoramento da Sessão
-    onAuthStateChanged(auth, (user) => {
+    // Identificação de Perfil Flexível por E-mail
+    function identificarPerfil(email) {
+      const e = (email || "").toLowerCase();
+      if (e.includes("admin")) return { apelido: "Administrador", role: "admin", nome: "Gestor Geral" };
+      if (e.includes("kaique")) return { apelido: "Kaique", role: "motorista", nome: "Andre Kaique Clorado" };
+      if (e.includes("anderson")) return { apelido: "Anderson", role: "motorista", nome: "Anderson Caetano de Souza" };
+      if (e.includes("jlima") || e.includes("j.lima") || e.includes("jesse")) return { apelido: "J. Lima", role: "seguranca", nome: "Jessé Lima da Silva" };
+      
+      return { apelido: email.split('@')[0], role: "prestador", nome: email };
+    }
+
+    // Monitoramento do Login
+    onAuthStateChanged(auth, async (user) => {
       const authScreen = document.getElementById('auth-screen');
       const appContainer = document.getElementById('app-container');
 
       if (user) {
-        const perfil = MAPA_USUARIOS[user.email.toLowerCase()] || {
-          apelido: user.email.split('@')[0],
-          role: "prestador",
-          nome: user.email
-        };
-
-        usuarioLogado = { email: user.email, ...perfil };
+        usuarioLogado = { email: user.email, ...identificarPerfil(user.email) };
 
         document.getElementById('user-display-name').textContent = usuarioLogado.apelido;
         document.getElementById('user-display-role').textContent = usuarioLogado.role.toUpperCase();
 
-        // Se for admin, exibe a aba de cadastros e o seletor de pessoas
         if (usuarioLogado.role === 'admin') {
           document.getElementById('tab-btn-cadastros').classList.remove('hidden');
           document.getElementById('filtro-pessoa').classList.remove('hidden');
@@ -371,7 +380,7 @@
 
         atualizarSelects();
         calcularRota();
-        carregarRotas();
+        await carregarRotas();
       } else {
         usuarioLogado = null;
         authScreen.classList.remove('hidden');
@@ -379,29 +388,33 @@
       }
     });
 
-    // Login
+    // Submissão do Login
     document.getElementById('form-login').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('login-email').value.trim();
       const pass = document.getElementById('login-senha').value;
       const btn = document.getElementById('btn-login');
+      const errBox = document.getElementById('login-erro');
+
+      errBox.classList.add('hidden');
 
       try {
         btn.disabled = true;
         btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Autenticando...`;
         await signInWithEmailAndPassword(auth, email, pass);
       } catch (err) {
-        alert("Falha no login: " + err.message);
+        errBox.textContent = "Erro ao entrar: " + (err.code === 'auth/invalid-credential' ? "E-mail ou senha inválidos." : err.message);
+        errBox.classList.remove('hidden');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Entrar no Sistema`;
+        btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Entrar`;
       }
     });
 
     // Logout
     document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-    // Abas
+    // Navegação por Abas
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => {
@@ -460,8 +473,8 @@
       const d = document.getElementById('dataRota').value;
       const hIni = document.getElementById('horaInicio').value;
       const hFim = document.getElementById('horaFinal').value;
-      const km = Math.max(0, Number(document.getElementById('kmTotal').value) || 0);
-      const pedagio = Math.max(0, Number(document.getElementById('pedagioTotal').value) || 0);
+      const km = numLimpo(document.getElementById('kmTotal').value);
+      const pedagio = numLimpo(document.getElementById('pedagioTotal').value);
 
       if (d) {
         const { dataPagamentoStr } = calcularCicloPagamento(d);
@@ -472,8 +485,8 @@
       if (hIni && hFim) {
         const [h1, m1] = hIni.split(':').map(Number);
         const [h2, m2] = hFim.split(':').map(Number);
-        let t1 = h1 * 60 + m1;
-        let t2 = h2 * 60 + m2;
+        let t1 = (h1 * 60) + m1;
+        let t2 = (h2 * 60) + m2;
         if (t2 < t1) t2 += 24 * 60;
         minutosTotais = t2 - t1;
       }
@@ -500,6 +513,9 @@
       const subMotorista = valDiaria + valAdic + valAluguel + valKm + pedagio;
       const subSeguranca = valDiaria + valAdic;
 
+      document.getElementById('calc-sub-mot').textContent = fmtBRL(subMotorista);
+      document.getElementById('calc-sub-seg').textContent = fmtBRL(subSeguranca);
+
       return {
         duracaoFormatada: `${hDur}h ${String(mDur).padStart(2, '0')}m`,
         atingiu5h30,
@@ -515,21 +531,38 @@
 
     document.querySelectorAll('.calc-trigger, #dataRota').forEach(el => el.addEventListener('input', calcularRota));
 
+    // Carregar Rotas do Firestore (com Fallback Limpo)
     async function carregarRotas() {
       cacheRotas = [];
       try {
         const snapshot = await getDocs(collection(db, "rotas"));
-        snapshot.forEach(d => cacheRotas.push({ id: d.id, ...d.data() }));
+        snapshot.forEach(d => {
+          const item = d.data();
+          cacheRotas.push({
+            id: d.id,
+            ...item,
+            km: numLimpo(item.km),
+            pedagio: numLimpo(item.pedagio),
+            subMotorista: numLimpo(item.subMotorista),
+            subSeguranca: numLimpo(item.subSeguranca),
+            valKm: numLimpo(item.valKm),
+            valAluguel: numLimpo(item.valAluguel),
+            valDiaria: numLimpo(item.valDiaria),
+            valAdic: numLimpo(item.valAdic)
+          });
+        });
       } catch (err) {
-        console.warn("Lendo localmente:", err);
+        console.warn("Erro ao buscar no Firestore:", err);
+        showToast("Aviso: Lendo banco local (" + err.message + ")", false);
         cacheRotas = JSON.parse(localStorage.getItem('sys_rotas_backup') || '[]');
       }
 
       cacheRotas.sort((a, b) => (b.data || "").localeCompare(a.data || ""));
       renderizarTabelaRotas();
+      renderizarFechamentos();
     }
 
-    // Renderiza respeitando a privacidade estrita do usuário autenticado
+    // Renderizar Tabela com Filtro Individual
     function renderizarTabelaRotas() {
       const tbody = document.getElementById('tabela-rotas');
       tbody.innerHTML = "";
@@ -539,7 +572,6 @@
       const isAdmin = usuarioLogado.role === 'admin';
       const meuApelido = usuarioLogado.apelido;
 
-      // Filtra as rotas que o prestador participou
       const filtradas = cacheRotas.filter(r => {
         if (isAdmin) return true;
         return r.motorista === meuApelido || r.seguranca === meuApelido;
@@ -548,7 +580,7 @@
       document.getElementById('contador-rotas').textContent = `${filtradas.length} rotas`;
 
       if (filtradas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Nenhuma rota registrada para sua conta.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Nenhuma rota encontrada para o perfil ${meuApelido}.</td></tr>`;
         return;
       }
 
@@ -558,7 +590,6 @@
         const [a, m, d] = (item.data || "").split('-');
         const dtFmt = d ? `${d}/${m}/${a}` : item.data;
 
-        // Determina o valor visível: se for o segurança logado, vê APENAS o dele.
         let valorExibido = 0;
         let etiquetaValor = "";
 
@@ -575,12 +606,12 @@
 
         tr.innerHTML = `
           <td class="py-2.5 px-3 font-medium text-slate-900">${dtFmt}</td>
-          <td class="py-2.5 px-3 text-slate-600">${item.horaInicio} às ${item.horaFinal}</td>
+          <td class="py-2.5 px-3 text-slate-600">${item.horaInicio || '--:--'} às ${item.horaFinal || '--:--'}</td>
           <td class="py-2.5 px-3 text-slate-800">
             <span class="block"><b>Mot:</b> ${item.motorista}</span>
             <span class="block text-slate-500"><b>Seg:</b> ${item.seguranca}</span>
           </td>
-          <td class="py-2.5 px-3 text-slate-600 font-mono">${item.placa} / ${item.km} km</td>
+          <td class="py-2.5 px-3 text-slate-600 font-mono">${item.placa || '—'} / ${item.km} km</td>
           <td class="py-2.5 px-3 text-right">
             <span class="block font-bold text-blue-600">${fmtBRL(valorExibido)}</span>
             <span class="block text-[10px] text-slate-400 font-medium">${etiquetaValor}</span>
@@ -597,7 +628,7 @@
       });
     }
 
-    // Gravação da Rota (Qualquer um grava)
+    // Gravação da Rota
     let enviando = false;
     document.getElementById('form-rota').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -618,20 +649,20 @@
         horaFinal: document.getElementById('horaFinal').value,
         duracao: calc.duracaoFormatada,
         atingiu5h30: calc.atingiu5h30,
-        km: Math.max(0, Number(document.getElementById('kmTotal').value) || 0),
+        km: numLimpo(document.getElementById('kmTotal').value),
         placa: document.getElementById('placaCarro').value,
-        pedagio: calc.pedagio,
+        pedagio: numLimpo(calc.pedagio),
         motorista: document.getElementById('motoristaSelect').value,
         seguranca: document.getElementById('segurancaSelect').value,
-        valDiaria: calc.valDiaria,
-        valAdic: calc.valAdic,
-        valKm: calc.valKm,
-        valAluguel: calc.valAluguel,
-        subMotorista: calc.subMotorista,
-        subSeguranca: calc.subSeguranca,
+        valDiaria: numLimpo(calc.valDiaria),
+        valAdic: numLimpo(calc.valAdic),
+        valKm: numLimpo(calc.valKm),
+        valAluguel: numLimpo(calc.valAluguel),
+        subMotorista: numLimpo(calc.subMotorista),
+        subSeguranca: numLimpo(calc.subSeguranca),
         cicloId: ciclo.cicloId,
         dataPagamento: ciclo.dataPagamentoStr,
-        criadoPor: usuarioLogado ? usuarioLogado.email : "desconhecido",
+        criadoPor: usuarioLogado ? usuarioLogado.email : "anonimo",
         createdAt: new Date().toISOString()
       };
 
@@ -643,7 +674,7 @@
         local.unshift(novaRota);
         localStorage.setItem('sys_rotas_backup', JSON.stringify(local));
 
-        showToast("Lançamento gravado com sucesso!");
+        showToast("Lançamento gravado com sucesso no Firebase!");
         document.getElementById('form-rota').reset();
         calcularRota();
         await carregarRotas();
@@ -672,7 +703,7 @@
       await carregarRotas();
     };
 
-    // Fechamentos com Proteção Financeira
+    // Fechamento Quinzenal
     function renderizarFechamentos() {
       const box = document.getElementById('box-demonstrativo-fechamento');
       const fCiclo = document.getElementById('filtro-ciclo');
@@ -681,11 +712,9 @@
       if (!usuarioLogado) return;
       const isAdmin = usuarioLogado.role === 'admin';
 
-      // Preenche os ciclos
       const ciclos = [...new Set(cacheRotas.map(r => r.dataPagamento).filter(Boolean))];
       fCiclo.innerHTML = ciclos.length ? ciclos.map(c => `<option value="${c}">Pagamento em: ${c}</option>`).join('') : '<option value="">Sem fechamentos</option>';
 
-      // Se for admin, preenche as pessoas para escolher
       if (isAdmin) {
         const pessoas = [
           ...cadMotoristas.map(m => ({ apelido: m.apelido, tipo: 'Motorista' })),
@@ -695,14 +724,13 @@
       }
 
       const cicloSel = fCiclo.value;
-      const pessoaAlvo = isAdmin ? fPessoa.value : usuarioLogado.apelido;
+      const pessoaAlvo = isAdmin ? (fPessoa.value || usuarioLogado.apelido) : usuarioLogado.apelido;
 
       if (!cicloSel || !pessoaAlvo) {
-        box.innerHTML = `<p class="text-xs text-slate-400 text-center">Nenhum fechamento disponível para este ciclo.</p>`;
+        box.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Nenhum fechamento registrado para este período.</p>`;
         return;
       }
 
-      // Filtra estritamente as viagens da pessoa
       const rotasPessoa = cacheRotas.filter(r => 
         r.dataPagamento === cicloSel && (r.motorista === pessoaAlvo || r.seguranca === pessoaAlvo)
       );
@@ -713,8 +741,8 @@
       let totDiarias = totServicos * CONSTS.DIARIA;
       let totAdicionais = rotasPessoa.filter(r => r.atingiu5h30).length * CONSTS.ADICIONAL_5H30;
       let totAluguel = isMotorista ? totServicos * CONSTS.ALUGUEL_CARRO : 0;
-      let totKm = isMotorista ? rotasPessoa.reduce((acc, r) => acc + (r.valKm || 0), 0) : 0;
-      let totPedagio = isMotorista ? rotasPessoa.reduce((acc, r) => acc + (r.pedagio || 0), 0) : 0;
+      let totKm = isMotorista ? rotasPessoa.reduce((acc, r) => acc + numLimpo(r.valKm), 0) : 0;
+      let totPedagio = isMotorista ? rotasPessoa.reduce((acc, r) => acc + numLimpo(r.pedagio), 0) : 0;
       let totalGeral = totDiarias + totAdicionais + totAluguel + totKm + totPedagio;
 
       box.innerHTML = `
