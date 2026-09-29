@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SystemDiaria - Fechamento Operacional</title>
+  <title>SystemDiarias - Fechamento Operacional</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -27,25 +27,29 @@
         <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto text-xl mb-2">
           <i class="fa-solid fa-lock"></i>
         </div>
-        <h2 class="text-xl font-black text-slate-900">SystemDiaria</h2>
-        <p class="text-xs text-slate-500">Informe suas credenciais para acessar os lançamentos.</p>
+        <h2 class="text-xl font-black text-slate-900">SystemDiarias</h2>
+        <p class="text-xs text-slate-500">Informe suas credenciais corporativas para entrar.</p>
       </div>
 
       <div id="login-erro" class="hidden p-3 rounded-xl text-xs bg-rose-100 text-rose-700 font-semibold border border-rose-200"></div>
 
       <form id="form-login" class="space-y-3">
         <div>
-          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">E-mail</label>
-          <input type="email" id="login-email" placeholder="seu-email@sistema.com" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm">
+          <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">E-mail Corporativo</label>
+          <input type="email" id="login-email" placeholder="usuario@systemdiarias.com" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm">
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Senha</label>
           <input type="password" id="login-senha" placeholder="••••••••" required class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 text-sm">
         </div>
         <button type="submit" id="btn-login" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-sm transition shadow flex items-center justify-center gap-2">
-          <i class="fa-solid fa-right-to-bracket"></i> Entrar
+          <i class="fa-solid fa-right-to-bracket"></i> Acessar Sistema
         </button>
       </form>
+      
+      <div class="text-[11px] text-slate-400 text-center border-t pt-2">
+        Acesso individual e protegido por perfil
+      </div>
     </div>
   </div>
 
@@ -57,15 +61,18 @@
       <div class="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
         <div class="flex items-center gap-2.5">
           <i class="fa-solid fa-route text-blue-400 text-lg"></i>
-          <h1 class="text-base font-bold tracking-tight">SystemDiaria</h1>
+          <div>
+            <h1 class="text-base font-bold tracking-tight leading-none">SystemDiarias</h1>
+            <span class="text-[10px] text-slate-400">Controle Operacional</span>
+          </div>
         </div>
         
         <div class="flex items-center gap-3">
           <div class="text-right">
             <span id="user-display-name" class="block text-xs font-bold text-white">Carregando...</span>
-            <span id="user-display-role" class="block text-[10px] text-blue-300">Prestador</span>
+            <span id="user-display-role" class="block text-[10px] text-blue-300 font-medium">Carregando...</span>
           </div>
-          <button id="btn-logout" title="Sair da Conta" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
+          <button id="btn-logout" title="Sair do Sistema" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition">
             <i class="fa-solid fa-arrow-right-from-bracket"></i>
           </button>
         </div>
@@ -88,7 +95,7 @@
     <!-- Conteúdo -->
     <main class="max-w-5xl mx-auto px-4 py-4 flex-1 w-full space-y-6">
 
-      <!-- Toast de Avisos -->
+      <!-- Toast de Alertas -->
       <div id="toast" class="hidden p-3 rounded-xl text-xs font-semibold flex items-center justify-between shadow-lg mb-4 transition-all"></div>
 
       <!-- ABA 1: LANÇAMENTOS -->
@@ -158,7 +165,6 @@
               </div>
             </div>
 
-            <!-- Resumo ao vivo dos valores calculados para a rota -->
             <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs sm:text-sm">
               <div>
                 <span class="text-slate-500 font-semibold block text-[11px] uppercase">Duração Apurada</span>
@@ -221,7 +227,7 @@
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
             <div>
               <h2 class="text-base font-bold text-slate-900">Extrato de Pagamento Quinquenal</h2>
-              <p class="text-xs text-slate-500">Visualização exclusiva dos valores a receber.</p>
+              <p class="text-xs text-slate-500">Valores a receber calculados conforme função e ciclo.</p>
             </div>
             <div class="flex items-center gap-2">
               <select id="filtro-ciclo" class="bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-semibold"></select>
@@ -233,7 +239,7 @@
         </div>
       </section>
 
-      <!-- ABA 3: CADASTROS (Apenas Admin) -->
+      <!-- ABA 3: CADASTROS (Admin) -->
       <section id="aba-cadastros" class="tab-pane hidden space-y-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-sm space-y-3">
@@ -305,13 +311,41 @@
       ALUGUEL_CARRO: 60.00
     };
 
+    // VALIDAÇÃO EXATA DOS E-MAILS OFICIAIS
+    const MAPA_USUARIOS = {
+      "adm@systemdiarias.com": {
+        nome: "Administrador",
+        apelido: "Administrador",
+        role: "admin",
+        tipo: "admin"
+      },
+      "jlima@systemdiarias.com": {
+        nome: "Jesse Lima da Silva",
+        apelido: "J. Lima",
+        role: "prestador",
+        tipo: "seguranca"
+      },
+      "acaetano@systemdiarias.com": {
+        nome: "Anderson Caetano de Souza",
+        apelido: "Anderson",
+        role: "prestador",
+        tipo: "motorista"
+      },
+      "akaique@systemdiarias.com": {
+        nome: "Andre Kaique Clorado",
+        apelido: "Kaique",
+        role: "prestador",
+        tipo: "motorista"
+      }
+    };
+
     const DADOS_BASE = {
       motoristas: [
         { id: "m1", nome: "Andre Kaique Clorado", apelido: "Kaique" },
         { id: "m2", nome: "Anderson Caetano de Souza", apelido: "Anderson" }
       ],
       segurancas: [
-        { id: "s1", nome: "Jessé Lima da Silva", apelido: "J. Lima" }
+        { id: "s1", nome: "Jesse Lima da Silva", apelido: "J. Lima" }
       ],
       veiculos: [
         { id: "v1", placa: "ELZ2D94", modelo: "FIAT STRADA" }
@@ -328,7 +362,6 @@
     let cadSegurancas = JSON.parse(localStorage.getItem('sys_cad_seg')) || DADOS_BASE.segurancas;
     let cadVeiculos = JSON.parse(localStorage.getItem('sys_cad_veic')) || DADOS_BASE.veiculos;
 
-    // Utilitário de formatação blindado contra NaN
     const numLimpo = (n) => {
       const v = parseFloat(n);
       return isNaN(v) ? 0 : v;
@@ -345,27 +378,24 @@
       setTimeout(() => toast.classList.add('hidden'), 5000);
     }
 
-    // Identificação de Perfil Flexível por E-mail
-    function identificarPerfil(email) {
-      const e = (email || "").toLowerCase();
-      if (e.includes("admin")) return { apelido: "Administrador", role: "admin", nome: "Gestor Geral" };
-      if (e.includes("kaique")) return { apelido: "Kaique", role: "motorista", nome: "Andre Kaique Clorado" };
-      if (e.includes("anderson")) return { apelido: "Anderson", role: "motorista", nome: "Anderson Caetano de Souza" };
-      if (e.includes("jlima") || e.includes("j.lima") || e.includes("jesse")) return { apelido: "J. Lima", role: "seguranca", nome: "Jessé Lima da Silva" };
-      
-      return { apelido: email.split('@')[0], role: "prestador", nome: email };
-    }
-
-    // Monitoramento do Login
+    // Monitoramento da Sessão
     onAuthStateChanged(auth, async (user) => {
       const authScreen = document.getElementById('auth-screen');
       const appContainer = document.getElementById('app-container');
 
       if (user) {
-        usuarioLogado = { email: user.email, ...identificarPerfil(user.email) };
+        const emailFormatado = (user.email || "").toLowerCase().trim();
+        const perfil = MAPA_USUARIOS[emailFormatado] || {
+          nome: user.email,
+          apelido: user.email.split('@')[0],
+          role: "prestador",
+          tipo: "prestador"
+        };
 
-        document.getElementById('user-display-name').textContent = usuarioLogado.apelido;
-        document.getElementById('user-display-role').textContent = usuarioLogado.role.toUpperCase();
+        usuarioLogado = { email: emailFormatado, ...perfil };
+
+        document.getElementById('user-display-name').textContent = usuarioLogado.nome;
+        document.getElementById('user-display-role').textContent = `${usuarioLogado.apelido} (${usuarioLogado.tipo.toUpperCase()})`;
 
         if (usuarioLogado.role === 'admin') {
           document.getElementById('tab-btn-cadastros').classList.remove('hidden');
@@ -388,7 +418,7 @@
       }
     });
 
-    // Submissão do Login
+    // Login
     document.getElementById('form-login').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('login-email').value.trim();
@@ -403,18 +433,18 @@
         btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Autenticando...`;
         await signInWithEmailAndPassword(auth, email, pass);
       } catch (err) {
-        errBox.textContent = "Erro ao entrar: " + (err.code === 'auth/invalid-credential' ? "E-mail ou senha inválidos." : err.message);
+        errBox.textContent = "Falha no acesso: verifique seu e-mail e senha corporativos.";
         errBox.classList.remove('hidden');
       } finally {
         btn.disabled = false;
-        btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Entrar`;
+        btn.innerHTML = `<i class="fa-solid fa-right-to-bracket"></i> Acessar Sistema`;
       }
     });
 
     // Logout
     document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-    // Navegação por Abas
+    // Abas
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => {
@@ -531,7 +561,6 @@
 
     document.querySelectorAll('.calc-trigger, #dataRota').forEach(el => el.addEventListener('input', calcularRota));
 
-    // Carregar Rotas do Firestore (com Fallback Limpo)
     async function carregarRotas() {
       cacheRotas = [];
       try {
@@ -552,8 +581,7 @@
           });
         });
       } catch (err) {
-        console.warn("Erro ao buscar no Firestore:", err);
-        showToast("Aviso: Lendo banco local (" + err.message + ")", false);
+        console.warn("Erro no Firestore, lendo backup local:", err);
         cacheRotas = JSON.parse(localStorage.getItem('sys_rotas_backup') || '[]');
       }
 
@@ -562,7 +590,6 @@
       renderizarFechamentos();
     }
 
-    // Renderizar Tabela com Filtro Individual
     function renderizarTabelaRotas() {
       const tbody = document.getElementById('tabela-rotas');
       tbody.innerHTML = "";
@@ -572,6 +599,7 @@
       const isAdmin = usuarioLogado.role === 'admin';
       const meuApelido = usuarioLogado.apelido;
 
+      // Filtragem por usuário
       const filtradas = cacheRotas.filter(r => {
         if (isAdmin) return true;
         return r.motorista === meuApelido || r.seguranca === meuApelido;
@@ -580,7 +608,7 @@
       document.getElementById('contador-rotas').textContent = `${filtradas.length} rotas`;
 
       if (filtradas.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Nenhuma rota encontrada para o perfil ${meuApelido}.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-400">Nenhuma rota encontrada para ${usuarioLogado.nome}.</td></tr>`;
         return;
       }
 
@@ -595,13 +623,13 @@
 
         if (isAdmin) {
           valorExibido = item.subMotorista + item.subSeguranca;
-          etiquetaValor = "Total da Rota";
+          etiquetaValor = "Custo Total da Rota";
         } else if (item.motorista === meuApelido) {
           valorExibido = item.subMotorista;
-          etiquetaValor = "Meu (Motorista)";
+          etiquetaValor = "Meu Recebimento (Motorista)";
         } else if (item.seguranca === meuApelido) {
           valorExibido = item.subSeguranca;
-          etiquetaValor = "Meu (Segurança)";
+          etiquetaValor = "Meu Recebimento (Segurança)";
         }
 
         tr.innerHTML = `
@@ -628,7 +656,7 @@
       });
     }
 
-    // Gravação da Rota
+    // Gravação
     let enviando = false;
     document.getElementById('form-rota').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -784,7 +812,7 @@
     document.getElementById('filtro-ciclo').addEventListener('change', renderizarFechamentos);
     document.getElementById('filtro-pessoa').addEventListener('change', renderizarFechamentos);
 
-    // Cadastros Admin
+    // Cadastros
     document.getElementById('form-cad-motorista').addEventListener('submit', (e) => {
       e.preventDefault();
       const nome = document.getElementById('cadMotNome').value.trim();
