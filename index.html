@@ -227,11 +227,17 @@
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
             <div>
               <h2 class="text-base font-bold text-slate-900">Extrato de Pagamento Quinquenal</h2>
-              <p class="text-xs text-slate-500">Valores a receber calculados conforme função e ciclo.</p>
+              <p class="text-xs text-slate-500">Selecione o período de pagamento para visualizar o demonstrativo.</p>
             </div>
-            <div class="flex items-center gap-2">
-              <select id="filtro-ciclo" class="bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-semibold"></select>
-              <select id="filtro-pessoa" class="bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-semibold hidden"></select>
+            <div class="flex flex-wrap items-center gap-2">
+              <div>
+                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Quinzena / Pagamento</label>
+                <select id="filtro-ciclo" class="bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-semibold text-slate-800"></select>
+              </div>
+              <div id="wrapper-filtro-pessoa" class="hidden">
+                <label class="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Prestador</label>
+                <select id="filtro-pessoa" class="bg-slate-50 border border-slate-300 rounded-lg p-2 text-xs font-semibold text-slate-800"></select>
+              </div>
             </div>
           </div>
 
@@ -399,10 +405,10 @@
 
         if (usuarioLogado.role === 'admin') {
           document.getElementById('tab-btn-cadastros').classList.remove('hidden');
-          document.getElementById('filtro-pessoa').classList.remove('hidden');
+          document.getElementById('wrapper-filtro-pessoa').classList.remove('hidden');
         } else {
           document.getElementById('tab-btn-cadastros').classList.add('hidden');
-          document.getElementById('filtro-pessoa').classList.add('hidden');
+          document.getElementById('wrapper-filtro-pessoa').classList.add('hidden');
         }
 
         authScreen.classList.add('hidden');
@@ -456,7 +462,10 @@
         document.querySelectorAll('.tab-pane').forEach(p => p.classList.add('hidden'));
         document.getElementById(`aba-${tab}`).classList.remove('hidden');
 
-        if (tab === 'fechamentos') renderizarFechamentos();
+        if (tab === 'fechamentos') {
+          popularFiltrosFechamento();
+          renderizarFechamentos();
+        }
       });
     });
 
@@ -587,6 +596,7 @@
 
       cacheRotas.sort((a, b) => (b.data || "").localeCompare(a.data || ""));
       renderizarTabelaRotas();
+      popularFiltrosFechamento();
       renderizarFechamentos();
     }
 
@@ -599,7 +609,6 @@
       const isAdmin = usuarioLogado.role === 'admin';
       const meuApelido = usuarioLogado.apelido;
 
-      // Filtragem por usuário
       const filtradas = cacheRotas.filter(r => {
         if (isAdmin) return true;
         return r.motorista === meuApelido || r.seguranca === meuApelido;
@@ -731,7 +740,52 @@
       await carregarRotas();
     };
 
-    // Fechamento Quinzenal
+    // CORREÇÃO CRÍTICA: Popula os filtros SEM sobrescrever o item selecionado
+    function popularFiltrosFechamento() {
+      if (!usuarioLogado) return;
+      const isAdmin = usuarioLogado.role === 'admin';
+      const fCiclo = document.getElementById('filtro-ciclo');
+      const fPessoa = document.getElementById('filtro-pessoa');
+
+      // Salva a seleção atual do usuário para restaurar
+      const cicloPreviamenteSelecionado = fCiclo.value;
+      const pessoaPreviamenteSelecionada = fPessoa.value;
+
+      // 1. Obter todas as datas de pagamento ordenadas cronologicamente decrescente
+      const ciclosUnicos = [...new Set(cacheRotas.map(r => r.dataPagamento).filter(Boolean))];
+      ciclosUnicos.sort((a, b) => {
+        const [d1, m1, y1] = a.split('/').map(Number);
+        const [d2, m2, y2] = b.split('/').map(Number);
+        return new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1);
+      });
+
+      if (ciclosUnicos.length === 0) {
+        fCiclo.innerHTML = '<option value="">Sem lançamentos</option>';
+      } else {
+        fCiclo.innerHTML = ciclosUnicos.map(c => `<option value="${c}">Pagamento em: ${c}</option>`).join('');
+        // Restaura seleção anterior se ela ainda existir na lista
+        if (cicloPreviamenteSelecionado && ciclosUnicos.includes(cicloPreviamenteSelecionado)) {
+          fCiclo.value = cicloPreviamenteSelecionado;
+        }
+      }
+
+      // 2. Obter prestadores disponíveis se for Admin
+      if (isAdmin) {
+        const pessoas = [
+          ...cadMotoristas.map(m => ({ apelido: m.apelido, tipo: 'Motorista' })),
+          ...cadSegurancas.map(s => ({ apelido: s.apelido, tipo: 'Segurança' }))
+        ];
+        
+        fPessoa.innerHTML = pessoas.map(p => `<option value="${p.apelido}">${p.apelido} (${p.tipo})</option>`).join('');
+        
+        // Restaura seleção anterior da pessoa se aplicável
+        if (pessoaPreviamenteSelecionada && pessoas.some(p => p.apelido === pessoaPreviamenteSelecionada)) {
+          fPessoa.value = pessoaPreviamenteSelecionada;
+        }
+      }
+    }
+
+    // Renderiza o extrato com base no que está selecionado
     function renderizarFechamentos() {
       const box = document.getElementById('box-demonstrativo-fechamento');
       const fCiclo = document.getElementById('filtro-ciclo');
@@ -740,25 +794,15 @@
       if (!usuarioLogado) return;
       const isAdmin = usuarioLogado.role === 'admin';
 
-      const ciclos = [...new Set(cacheRotas.map(r => r.dataPagamento).filter(Boolean))];
-      fCiclo.innerHTML = ciclos.length ? ciclos.map(c => `<option value="${c}">Pagamento em: ${c}</option>`).join('') : '<option value="">Sem fechamentos</option>';
-
-      if (isAdmin) {
-        const pessoas = [
-          ...cadMotoristas.map(m => ({ apelido: m.apelido, tipo: 'Motorista' })),
-          ...cadSegurancas.map(s => ({ apelido: s.apelido, tipo: 'Segurança' }))
-        ];
-        fPessoa.innerHTML = pessoas.map(p => `<option value="${p.apelido}">${p.apelido} (${p.tipo})</option>`).join('');
-      }
-
       const cicloSel = fCiclo.value;
-      const pessoaAlvo = isAdmin ? (fPessoa.value || usuarioLogado.apelido) : usuarioLogado.apelido;
+      const pessoaAlvo = isAdmin ? (fPessoa.value || (cadMotoristas[0] && cadMotoristas[0].apelido)) : usuarioLogado.apelido;
 
       if (!cicloSel || !pessoaAlvo) {
-        box.innerHTML = `<p class="text-xs text-slate-400 text-center py-4">Nenhum fechamento registrado para este período.</p>`;
+        box.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Nenhum fechamento registrado para este período.</p>`;
         return;
       }
 
+      // Filtra estritamente as viagens da pessoa no ciclo selecionado
       const rotasPessoa = cacheRotas.filter(r => 
         r.dataPagamento === cicloSel && (r.motorista === pessoaAlvo || r.seguranca === pessoaAlvo)
       );
@@ -774,41 +818,72 @@
       let totalGeral = totDiarias + totAdicionais + totAluguel + totKm + totPedagio;
 
       box.innerHTML = `
-        <div class="flex justify-between items-center border-b pb-3">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 pb-3">
           <div>
-            <h3 class="font-bold text-base text-slate-900">${pessoaAlvo.toUpperCase()}</h3>
-            <p class="text-xs text-slate-500">Função: ${isMotorista ? 'Motorista' : 'Segurança'} | Pagamento: <b>${cicloSel}</b></p>
+            <h3 class="font-bold text-lg text-slate-900">${pessoaAlvo.toUpperCase()}</h3>
+            <p class="text-xs text-slate-500">Função: <b>${isMotorista ? 'Motorista' : 'Segurança'}</b> | Data Quitação: <b class="text-blue-700">${cicloSel}</b></p>
           </div>
-          <span class="text-2xl font-black text-blue-600">${fmtBRL(totalGeral)}</span>
+          <div class="text-right">
+            <span class="text-xs text-slate-400 block font-semibold">Total a Receber</span>
+            <span class="text-2xl font-black text-blue-600">${fmtBRL(totalGeral)}</span>
+          </div>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-          <div class="p-2.5 rounded-lg bg-white border border-slate-200">
-            <span class="text-slate-400 block">Serviços Executados</span>
-            <span class="font-bold text-slate-800">${totServicos} diárias (${fmtBRL(totDiarias)})</span>
+          <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <span class="text-slate-400 block font-semibold mb-0.5">Serviços / Diárias</span>
+            <span class="font-bold text-slate-800 text-sm">${totServicos} diárias</span>
+            <p class="text-[11px] text-blue-600 font-medium">${fmtBRL(totDiarias)}</p>
           </div>
-          <div class="p-2.5 rounded-lg bg-white border border-slate-200">
-            <span class="text-slate-400 block">Adicionais +5h30</span>
-            <span class="font-bold text-slate-800">${fmtBRL(totAdicionais)}</span>
+          <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
+            <span class="text-slate-400 block font-semibold mb-0.5">Adicionais +5h30</span>
+            <span class="font-bold text-slate-800 text-sm">${rotasPessoa.filter(r => r.atingiu5h30).length} ocorrências</span>
+            <p class="text-[11px] text-emerald-600 font-medium">${fmtBRL(totAdicionais)}</p>
           </div>
           ${isMotorista ? `
-            <div class="p-2.5 rounded-lg bg-white border border-slate-200">
-              <span class="text-slate-400 block">Aluguel do Carro</span>
-              <span class="font-bold text-slate-800">${fmtBRL(totAluguel)}</span>
+            <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
+              <span class="text-slate-400 block font-semibold mb-0.5">Aluguel do Carro</span>
+              <span class="font-bold text-slate-800 text-sm">${totServicos} serviços</span>
+              <p class="text-[11px] text-slate-700 font-medium">${fmtBRL(totAluguel)}</p>
             </div>
-            <div class="p-2.5 rounded-lg bg-white border border-slate-200">
-              <span class="text-slate-400 block">Reembolso KM</span>
-              <span class="font-bold text-slate-800">${fmtBRL(totKm)}</span>
+            <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
+              <span class="text-slate-400 block font-semibold mb-0.5">Reembolso KM</span>
+              <span class="font-bold text-slate-800 text-sm">${rotasPessoa.reduce((acc, r) => acc + numLimpo(r.km), 0).toFixed(1)} km</span>
+              <p class="text-[11px] text-slate-700 font-medium">${fmtBRL(totKm)}</p>
             </div>
-            <div class="p-2.5 rounded-lg bg-white border border-slate-200">
-              <span class="text-slate-400 block">Reembolso Pedágios</span>
-              <span class="font-bold text-slate-800">${fmtBRL(totPedagio)}</span>
+            <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
+              <span class="text-slate-400 block font-semibold mb-0.5">Reembolso Pedágios</span>
+              <span class="font-bold text-slate-800 text-sm">Comprovantes</span>
+              <p class="text-[11px] text-slate-700 font-medium">${fmtBRL(totPedagio)}</p>
             </div>
           ` : ''}
+        </div>
+
+        <div class="mt-4 pt-3 border-t border-slate-200">
+          <h4 class="text-xs font-bold text-slate-700 mb-2">Detalhamento das rotas incluídas neste pagamento (${totServicos}):</h4>
+          <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+            ${rotasPessoa.length === 0 ? '<p class="text-xs text-slate-400 italic">Nenhum serviço registrado para este profissional nesta quinzena.</p>' : 
+              rotasPessoa.map(r => {
+                const [ano, mes, dia] = (r.data || "").split('-');
+                const dtFmt = dia ? `${dia}/${mes}/${ano}` : r.data;
+                const meuValor = isMotorista ? r.subMotorista : r.subSeguranca;
+                return `
+                  <div class="flex justify-between items-center p-2 rounded-lg bg-white border border-slate-100 text-xs">
+                    <div>
+                      <span class="font-bold text-slate-800">${dtFmt}</span>
+                      <span class="text-slate-400 text-[11px] ml-2">${r.horaInicio} -${r.horaFinal} (${r.duracao})</span>${r.atingiu5h30 ? '<span class="ml-1 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold">+5h30</span>' : ''}
+                    </div>
+                    <span class="font-bold text-blue-600">${fmtBRL(meuValor)}</span>
+                  </div>
+                `;
+              }).join('')
+            }
+          </div>
         </div>
       `;
     }
 
+    // Ouvintes de alteração com disparo direto
     document.getElementById('filtro-ciclo').addEventListener('change', renderizarFechamentos);
     document.getElementById('filtro-pessoa').addEventListener('change', renderizarFechamentos);
 
@@ -821,6 +896,7 @@
       localStorage.setItem('sys_cad_mot', JSON.stringify(cadMotoristas));
       document.getElementById('form-cad-motorista').reset();
       atualizarSelects();
+      popularFiltrosFechamento();
       showToast("Motorista cadastrado!");
     });
 
@@ -832,6 +908,7 @@
       localStorage.setItem('sys_cad_seg', JSON.stringify(cadSegurancas));
       document.getElementById('form-cad-seguranca').reset();
       atualizarSelects();
+      popularFiltrosFechamento();
       showToast("Segurança cadastrado!");
     });
 
