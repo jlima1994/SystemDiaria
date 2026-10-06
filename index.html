@@ -227,7 +227,7 @@
           <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-slate-100 pb-3">
             <div>
               <h2 class="text-base font-bold text-slate-900">Extrato de Pagamento Quinquenal</h2>
-              <p class="text-xs text-slate-500">Selecione o período de pagamento para visualizar o demonstrativo.</p>
+              <p class="text-xs text-slate-500">Demonstrativo financeiro com separação de Bruto, Líquido e Reembolso.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">
               <div>
@@ -241,7 +241,7 @@
             </div>
           </div>
 
-          <div id="box-demonstrativo-fechamento" class="bg-slate-50 border border-slate-200 rounded-xl p-4 sm:p-6 space-y-4"></div>
+          <div id="box-demonstrativo-fechamento" class="space-y-4"></div>
         </div>
       </section>
 
@@ -317,7 +317,6 @@
       ALUGUEL_CARRO: 60.00
     };
 
-    // VALIDAÇÃO EXATA DOS E-MAILS OFICIAIS
     const MAPA_USUARIOS = {
       "adm@systemdiarias.com": {
         nome: "Administrador",
@@ -384,7 +383,6 @@
       setTimeout(() => toast.classList.add('hidden'), 5000);
     }
 
-    // Monitoramento da Sessão
     onAuthStateChanged(auth, async (user) => {
       const authScreen = document.getElementById('auth-screen');
       const appContainer = document.getElementById('app-container');
@@ -424,7 +422,6 @@
       }
     });
 
-    // Login
     document.getElementById('form-login').addEventListener('submit', async (e) => {
       e.preventDefault();
       const email = document.getElementById('login-email').value.trim();
@@ -447,10 +444,8 @@
       }
     });
 
-    // Logout
     document.getElementById('btn-logout').addEventListener('click', () => signOut(auth));
 
-    // Abas
     document.querySelectorAll('.tab-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.querySelectorAll('.tab-btn').forEach(b => {
@@ -665,7 +660,6 @@
       });
     }
 
-    // Gravação
     let enviando = false;
     document.getElementById('form-rota').addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -740,18 +734,15 @@
       await carregarRotas();
     };
 
-    // CORREÇÃO CRÍTICA: Popula os filtros SEM sobrescrever o item selecionado
     function popularFiltrosFechamento() {
       if (!usuarioLogado) return;
       const isAdmin = usuarioLogado.role === 'admin';
       const fCiclo = document.getElementById('filtro-ciclo');
       const fPessoa = document.getElementById('filtro-pessoa');
 
-      // Salva a seleção atual do usuário para restaurar
       const cicloPreviamenteSelecionado = fCiclo.value;
       const pessoaPreviamenteSelecionada = fPessoa.value;
 
-      // 1. Obter todas as datas de pagamento ordenadas cronologicamente decrescente
       const ciclosUnicos = [...new Set(cacheRotas.map(r => r.dataPagamento).filter(Boolean))];
       ciclosUnicos.sort((a, b) => {
         const [d1, m1, y1] = a.split('/').map(Number);
@@ -763,13 +754,11 @@
         fCiclo.innerHTML = '<option value="">Sem lançamentos</option>';
       } else {
         fCiclo.innerHTML = ciclosUnicos.map(c => `<option value="${c}">Pagamento em: ${c}</option>`).join('');
-        // Restaura seleção anterior se ela ainda existir na lista
         if (cicloPreviamenteSelecionado && ciclosUnicos.includes(cicloPreviamenteSelecionado)) {
           fCiclo.value = cicloPreviamenteSelecionado;
         }
       }
 
-      // 2. Obter prestadores disponíveis se for Admin
       if (isAdmin) {
         const pessoas = [
           ...cadMotoristas.map(m => ({ apelido: m.apelido, tipo: 'Motorista' })),
@@ -778,14 +767,13 @@
         
         fPessoa.innerHTML = pessoas.map(p => `<option value="${p.apelido}">${p.apelido} (${p.tipo})</option>`).join('');
         
-        // Restaura seleção anterior da pessoa se aplicável
         if (pessoaPreviamenteSelecionada && pessoas.some(p => p.apelido === pessoaPreviamenteSelecionada)) {
           fPessoa.value = pessoaPreviamenteSelecionada;
         }
       }
     }
 
-    // Renderiza o extrato com base no que está selecionado
+    // EXTRATO COM SEPARAÇÃO DE VALOR BRUTO, LÍQUIDO E REEMBOLSO
     function renderizarFechamentos() {
       const box = document.getElementById('box-demonstrativo-fechamento');
       const fCiclo = document.getElementById('filtro-ciclo');
@@ -798,82 +786,164 @@
       const pessoaAlvo = isAdmin ? (fPessoa.value || (cadMotoristas[0] && cadMotoristas[0].apelido)) : usuarioLogado.apelido;
 
       if (!cicloSel || !pessoaAlvo) {
-        box.innerHTML = `<p class="text-xs text-slate-400 text-center py-6">Nenhum fechamento registrado para este período.</p>`;
+        box.innerHTML = `<div class="bg-slate-50 border border-slate-200 rounded-xl p-6 text-center text-xs text-slate-400">Nenhum fechamento registrado para este período.</div>`;
         return;
       }
 
-      // Filtra estritamente as viagens da pessoa no ciclo selecionado
       const rotasPessoa = cacheRotas.filter(r => 
         r.dataPagamento === cicloSel && (r.motorista === pessoaAlvo || r.seguranca === pessoaAlvo)
       );
 
       const isMotorista = cadMotoristas.some(m => m.apelido === pessoaAlvo);
 
+      // Quantidades
       let totServicos = rotasPessoa.length;
       let totDiarias = totServicos * CONSTS.DIARIA;
       let totAdicionais = rotasPessoa.filter(r => r.atingiu5h30).length * CONSTS.ADICIONAL_5H30;
       let totAluguel = isMotorista ? totServicos * CONSTS.ALUGUEL_CARRO : 0;
       let totKm = isMotorista ? rotasPessoa.reduce((acc, r) => acc + numLimpo(r.valKm), 0) : 0;
       let totPedagio = isMotorista ? rotasPessoa.reduce((acc, r) => acc + numLimpo(r.pedagio), 0) : 0;
-      let totalGeral = totDiarias + totAdicionais + totAluguel + totKm + totPedagio;
+
+      // 1. VALOR LÍQUIDO: Diárias + Adicionais (+ Aluguel de Carro no caso do motorista)
+      let valorLiquido = totDiarias + totAdicionais + totAluguel;
+
+      // 2. VALOR BRUTO: Total geral a receber
+      let valorBruto = totDiarias + totAdicionais + totAluguel + totKm + totPedagio;
+
+      // 3. REEMBOLSO: Valor Total - Valor Líquido (KM + Pedágios)
+      let valorReembolso = valorBruto - valorLiquido;
 
       box.innerHTML = `
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-200 pb-3">
+        <!-- Cabeçalho do Profissional -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
           <div>
-            <h3 class="font-bold text-lg text-slate-900">${pessoaAlvo.toUpperCase()}</h3>
-            <p class="text-xs text-slate-500">Função: <b>${isMotorista ? 'Motorista' : 'Segurança'}</b> | Data Quitação: <b class="text-blue-700">${cicloSel}</b></p>
+            <div class="flex items-center gap-2">
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold ${isMotorista ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'}">
+                ${isMotorista ? 'MOTORISTA' : 'SEGURANÇA'}
+              </span>
+              <h3 class="font-extrabold text-xl text-slate-900">${pessoaAlvo.toUpperCase()}</h3>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+              Data de Quitação Prevista: <b class="text-blue-700 font-semibold">${cicloSel}</b>
+            </p>
           </div>
-          <div class="text-right">
-            <span class="text-xs text-slate-400 block font-semibold">Total a Receber</span>
-            <span class="text-2xl font-black text-blue-600">${fmtBRL(totalGeral)}</span>
+          <div class="text-left sm:text-right">
+            <span class="text-[11px] text-slate-400 font-semibold uppercase block">Serviços Executados</span>
+            <span class="text-lg font-bold text-slate-800">${totServicos} ${totServicos === 1 ? 'viagem' : 'viagens'}</span>
           </div>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-          <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
-            <span class="text-slate-400 block font-semibold mb-0.5">Serviços / Diárias</span>
-            <span class="font-bold text-slate-800 text-sm">${totServicos} diárias</span>
-            <p class="text-[11px] text-blue-600 font-medium">${fmtBRL(totDiarias)}</p>
+        <!-- CARDS PRINCIPAIS: BRUTO, LÍQUIDO E REEMBOLSO -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          
+          <!-- Valor Bruto (Total) -->
+          <div class="bg-white border-2 border-slate-900 rounded-2xl p-4 sm:p-5 shadow-sm space-y-1">
+            <div class="flex items-center justify-between text-slate-500">
+              <span class="text-xs font-bold uppercase tracking-wider">Valor Bruto</span>
+              <i class="fa-solid fa-coins text-slate-900 text-sm"></i>
+            </div>
+            <span class="text-2xl sm:text-3xl font-black text-slate-900 block">${fmtBRL(valorBruto)}</span>
+            <p class="text-[11px] text-slate-500 font-medium">Total Geral do Fechamento</p>
           </div>
-          <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
-            <span class="text-slate-400 block font-semibold mb-0.5">Adicionais +5h30</span>
-            <span class="font-bold text-slate-800 text-sm">${rotasPessoa.filter(r => r.atingiu5h30).length} ocorrências</span>
-            <p class="text-[11px] text-emerald-600 font-medium">${fmtBRL(totAdicionais)}</p>
+
+          <!-- Valor Líquido (Remuneração) -->
+          <div class="bg-blue-50/70 border border-blue-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-1">
+            <div class="flex items-center justify-between text-blue-700">
+              <span class="text-xs font-bold uppercase tracking-wider">Valor Líquido</span>
+              <i class="fa-solid fa-hand-holding-dollar text-blue-600 text-sm"></i>
+            </div>
+            <span class="text-2xl sm:text-3xl font-black text-blue-600 block">${fmtBRL(valorLiquido)}</span>
+            <p class="text-[11px] text-blue-700/80 font-medium">
+              ${isMotorista ? 'Diárias + Adicionais + Aluguel Carro' : 'Diárias + Adicionais'}
+            </p>
           </div>
-          ${isMotorista ? `
-            <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
-              <span class="text-slate-400 block font-semibold mb-0.5">Aluguel do Carro</span>
-              <span class="font-bold text-slate-800 text-sm">${totServicos} serviços</span>
-              <p class="text-[11px] text-slate-700 font-medium">${fmtBRL(totAluguel)}</p>
+
+          <!-- Reembolsos (KM + Pedágio) -->
+          <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-1">
+            <div class="flex items-center justify-between text-amber-800">
+              <span class="text-xs font-bold uppercase tracking-wider">Reembolso</span>
+              <i class="fa-solid fa-gas-pump text-amber-700 text-sm"></i>
             </div>
-            <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
-              <span class="text-slate-400 block font-semibold mb-0.5">Reembolso KM</span>
-              <span class="font-bold text-slate-800 text-sm">${rotasPessoa.reduce((acc, r) => acc + numLimpo(r.km), 0).toFixed(1)} km</span>
-              <p class="text-[11px] text-slate-700 font-medium">${fmtBRL(totKm)}</p>
-            </div>
-            <div class="p-3 rounded-xl bg-white border border-slate-200 shadow-sm">
-              <span class="text-slate-400 block font-semibold mb-0.5">Reembolso Pedágios</span>
-              <span class="font-bold text-slate-800 text-sm">Comprovantes</span>
-              <p class="text-[11px] text-slate-700 font-medium">${fmtBRL(totPedagio)}</p>
-            </div>
-          ` : ''}
+            <span class="text-2xl sm:text-3xl font-black text-amber-700 block">${fmtBRL(valorReembolso)}</span>
+            <p class="text-[11px] text-amber-800/80 font-medium">Valor Bruto - Valor Líquido</p>
+          </div>
+
         </div>
 
-        <div class="mt-4 pt-3 border-t border-slate-200">
-          <h4 class="text-xs font-bold text-slate-700 mb-2">Detalhamento das rotas incluídas neste pagamento (${totServicos}):</h4>
-          <div class="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+        <!-- COMPOSIÇÃO DETALHADA DAS RUBRICAS -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+            <i class="fa-solid fa-list-check text-blue-600"></i> Discriminação dos Lançamentos da Quinzena
+          </h4>
+
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-xs">
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <span class="text-slate-400 block font-semibold text-[11px]">Diárias (${totServicos}x)</span>
+              <span class="font-bold text-slate-800 text-sm">${fmtBRL(totDiarias)}</span>
+            </div>
+
+            <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+              <span class="text-slate-400 block font-semibold text-[11px]">Adicionais (+5h30)</span>
+              <span class="font-bold text-slate-800 text-sm">${fmtBRL(totAdicionais)}</span>
+            </div>
+
+            ${isMotorista ? `
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                <span class="text-slate-400 block font-semibold text-[11px]">Aluguel Carro</span>
+                <span class="font-bold text-slate-800 text-sm">${fmtBRL(totAluguel)}</span>
+              </div>
+
+              <div class="p-3 rounded-xl bg-amber-50/40 border border-amber-200">
+                <span class="text-amber-800/80 block font-semibold text-[11px]">Reembolso KM</span>
+                <span class="font-bold text-amber-900 text-sm">${fmtBRL(totKm)}</span>
+                <span class="text-[10px] text-amber-700 block">${rotasPessoa.reduce((acc, r) => acc + numLimpo(r.km), 0).toFixed(1)} km</span>
+              </div>
+
+              <div class="p-3 rounded-xl bg-amber-50/40 border border-amber-200">
+                <span class="text-amber-800/80 block font-semibold text-[11px]">Reembolso Pedágios</span>
+                <span class="font-bold text-amber-900 text-sm">${fmtBRL(totPedagio)}</span>
+                <span class="text-[10px] text-amber-700 block">Comprovados</span>
+              </div>
+            ` : `
+              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 col-span-2 sm:col-span-1">
+                <span class="text-slate-400 block font-semibold text-[11px]">Reembolsos</span>
+                <span class="font-bold text-slate-500 text-sm">R$ 0,00</span>
+              </div>
+            `}
+          </div>
+        </div>
+
+        <!-- LISTA DE SERVIÇOS DO PERÍODO -->
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm space-y-3">
+          <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider">
+            Detalhamento Rota a Rota (${totServicos} serviços):
+          </h4>
+
+          <div class="space-y-2 max-h-56 overflow-y-auto pr-1">
             ${rotasPessoa.length === 0 ? '<p class="text-xs text-slate-400 italic">Nenhum serviço registrado para este profissional nesta quinzena.</p>' : 
               rotasPessoa.map(r => {
                 const [ano, mes, dia] = (r.data || "").split('-');
                 const dtFmt = dia ? `${dia}/${mes}/${ano}` : r.data;
-                const meuValor = isMotorista ? r.subMotorista : r.subSeguranca;
+                const meuTotal = isMotorista ? r.subMotorista : r.subSeguranca;
+                const meuLiquido = isMotorista ? (numLimpo(r.valDiaria) + numLimpo(r.valAdic) + numLimpo(r.valAluguel)) : (numLimpo(r.valDiaria) + numLimpo(r.valAdic));
+                const meuReembolso = meuTotal - meuLiquido;
+
                 return `
-                  <div class="flex justify-between items-center p-2 rounded-lg bg-white border border-slate-100 text-xs">
+                  <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 rounded-xl bg-slate-50 border border-slate-100 gap-2 text-xs">
                     <div>
-                      <span class="font-bold text-slate-800">${dtFmt}</span>
-                      <span class="text-slate-400 text-[11px] ml-2">${r.horaInicio} -${r.horaFinal} (${r.duracao})</span>${r.atingiu5h30 ? '<span class="ml-1 text-[10px] bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded font-bold">+5h30</span>' : ''}
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-slate-900 text-sm">${dtFmt}</span>
+                        <span class="text-slate-500 font-medium">${r.horaInicio} às ${r.horaFinal} (${r.duracao})</span>${r.atingiu5h30 ? '<span class="text-[10px] bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded font-bold">+5h30</span>' : ''}
+                      </div>
+                      ${isMotorista ? `<div class="text-[11px] text-slate-500 mt-0.5 font-mono">Placa: ${r.placa} • ${r.km} km • Pedágio: ${fmtBRL(r.pedagio)}</div>` : ''}
                     </div>
-                    <span class="font-bold text-blue-600">${fmtBRL(meuValor)}</span>
+
+                    <div class="text-left sm:text-right flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2 border-t sm:border-t-0 pt-2 sm:pt-0">
+                      <div>
+                        <span class="text-slate-400 text-[10px] mr-1">Líq: ${fmtBRL(meuLiquido)}</span>${meuReembolso > 0 ? `<span class="text-amber-700 text-[10px] mr-1">Reemb: ${fmtBRL(meuReembolso)}</span>` : ''}
+                      </div>
+                      <span class="font-black text-slate-900 text-sm sm:text-base">${fmtBRL(meuTotal)}</span>
+                    </div>
                   </div>
                 `;
               }).join('')
@@ -883,11 +953,9 @@
       `;
     }
 
-    // Ouvintes de alteração com disparo direto
     document.getElementById('filtro-ciclo').addEventListener('change', renderizarFechamentos);
     document.getElementById('filtro-pessoa').addEventListener('change', renderizarFechamentos);
 
-    // Cadastros
     document.getElementById('form-cad-motorista').addEventListener('submit', (e) => {
       e.preventDefault();
       const nome = document.getElementById('cadMotNome').value.trim();
