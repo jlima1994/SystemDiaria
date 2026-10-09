@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>SystemDiarias — Gestão de Serviços e Pagamentos</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Plus Jakarta Sans',sans-serif} input:focus,select:focus,textarea:focus{outline:2px solid #bfdbfe;border-color:#2563eb}
+@media(max-width:768px){input,select,textarea{font-size:16px!important}}
+.tab-active{background:#2563eb!important;color:white!important;border-color:#2563eb!important}
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800 min-h-screen">
+<div id="auth-screen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center p-4">
+ <div class="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl space-y-5">
+  <div class="text-center"><div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto text-xl mb-2"><i class="fa-solid fa-route"></i></div><h1 class="text-xl font-black">SystemDiarias</h1><p class="text-xs text-slate-500 mt-1">Gestão de serviços e pagamentos</p></div>
+  <div id="login-erro" class="hidden p-3 rounded-xl text-xs bg-rose-100 text-rose-700"></div>
+  <form id="form-login" class="space-y-3">
+   <div><label class="block text-xs font-bold mb-1">Usuário</label><input id="login-username" required class="w-full bg-slate-50 border rounded-xl p-3" placeholder="ex.: jlima"></div>
+   <div><label class="block text-xs font-bold mb-1">Senha</label><input id="login-senha" type="password" required class="w-full bg-slate-50 border rounded-xl p-3" placeholder="Senha Firebase"></div>
+   <button id="btn-login" class="w-full py-3 bg-blue-600 text-white font-bold rounded-xl"><i class="fa-solid fa-right-to-bracket mr-2"></i>Entrar</button>
+  </form>
+  <p class="text-[11px] text-slate-400 text-center border-t pt-3">Acesso protegido pelo Firebase Authentication</p>
+ </div>
+</div>
+<div id="app-container" class="hidden">
+ <header class="bg-slate-900 text-white sticky top-0 z-30 shadow-md">
+  <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center gap-3">
+   <div class="flex items-center gap-3"><i class="fa-solid fa-route text-blue-400 text-xl"></i><div><h1 class="font-extrabold">SystemDiarias</h1><p class="text-[10px] text-slate-400">Controle operacional e financeiro</p></div></div>
+   <div class="flex items-center gap-3"><div class="text-right"><b id="user-display-name" class="block text-xs"></b><span id="user-display-role" class="text-[10px] text-blue-300"></span></div><button id="btn-logout" class="p-2 bg-slate-800 rounded-lg" title="Sair"><i class="fa-solid fa-arrow-right-from-bracket"></i></button></div>
+  </div>
+ </header>
+ <nav class="max-w-6xl mx-auto px-4 pt-4 flex flex-wrap gap-2">
+  <button class="tab-btn tab-active border rounded-xl px-3 py-2 text-xs sm:text-sm font-bold" data-tab="lancamentos"><i class="fa-solid fa-circle-plus mr-1"></i>Lançamentos</button>
+  <button class="tab-btn border bg-white rounded-xl px-3 py-2 text-xs sm:text-sm font-bold" data-tab="fechamentos"><i class="fa-solid fa-wallet mr-1"></i>Extratos</button>
+  <button id="tab-cadastros-btn" class="tab-btn border bg-white rounded-xl px-3 py-2 text-xs sm:text-sm font-bold hidden" data-tab="cadastros"><i class="fa-solid fa-address-book mr-1"></i>Cadastros</button>
+  <button id="tab-antigos-btn" class="tab-btn border bg-white rounded-xl px-3 py-2 text-xs sm:text-sm font-bold hidden" data-tab="antigos"><i class="fa-solid fa-box-archive mr-1"></i>Registros antigos</button>
+ </nav>
+ <main class="max-w-6xl mx-auto px-4 py-4 space-y-5">
+  <div id="toast" class="hidden p-3 rounded-xl text-xs font-semibold"></div>
+  <section id="aba-lancamentos" class="tab-pane space-y-5">
+   <div class="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-slate-700 flex flex-wrap gap-3 justify-between">
+    <b><i class="fa-solid fa-calculator text-blue-600 mr-1"></i> Parâmetros aplicados a novos serviços</b><span>Diária: <b id="top-cfg-diaria">R$ 190,00</b></span><span>Adicional acima de 5h30: <b id="top-cfg-adic">R$ 30,00</b></span><span>KM: <b id="top-cfg-km">R$ 0,68/km</b></span><span>Aluguel: <b id="top-cfg-aluguel">R$ 60,00</b></span>
+   </div>
+   <div class="bg-white rounded-2xl border p-4 sm:p-6 shadow-sm">
+    <div class="flex flex-wrap justify-between items-center gap-2 border-b pb-3 mb-4"><h2 class="font-extrabold"><i class="fa-solid fa-truck-moving text-blue-600 mr-2"></i>Novo registro de serviço</h2><span id="badge-ciclo" class="text-xs bg-blue-50 text-blue-700 border border-blue-200 rounded-full px-3 py-1">Informe a data</span></div>
+    <form id="form-rota" class="space-y-4">
+     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div><label class="block text-xs font-bold mb-1">Data do serviço</label><input type="date" id="dataRota" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
+      <div><label class="block text-xs font-bold mb-1">Hora inicial</label><input type="time" id="horaInicio" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
+      <div><label class="block text-xs font-bold mb-1">Hora final</label><input type="time" id="horaFinal" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
+     </div>
+     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div><label class="block text-xs font-bold mb-1">Veículo</label><select id="veiculoSelect" required class="w-full border bg-slate-50 rounded-lg p-2.5"></select><p id="info-proprietario" class="text-[11px] text-slate-500 mt-1"></p></div>
+      <div><label class="block text-xs font-bold mb-1">KM total da rota</label><input type="number" step="0.1" min="0" id="kmTotal" value="0" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
+      <div><label class="block text-xs font-bold mb-1">Pedágios pagos (R$)</label><input type="number" step="0.01" min="0" id="pedagioTotal" value="0" required class="w-full border bg-slate-50 rounded-lg p-2.5"></div>
+     </div>
+     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div><label class="block text-xs font-bold mb-1">Motorista</label><select id="motoristaSelect" required class="w-full border bg-slate-50 rounded-lg p-2.5"></select></div>
+      <div><label class="block text-xs font-bold mb-1">Segurança</label><select id="segurancaSelect" required class="w-full border bg-slate-50 rounded-lg p-2.5"></select></div>
+     </div>
+     <div class="bg-slate-50 border rounded-xl p-4 grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+      <div><span class="block text-[11px] uppercase text-slate-500 font-bold">Duração</span><b id="calc-duracao" class="text-lg">0h 00m</b><p id="calc-adicional" class="text-[11px] text-slate-500">Sem adicional</p></div>
+      <div><span class="block text-[11px] uppercase text-slate-500 font-bold">Pagamento motorista</span><b id="calc-motorista" class="text-lg text-blue-700">R$ 0,00</b><p class="text-[11px] text-slate-500">Diária + adicional, quando aplicável</p></div>
+      <div><span class="block text-[11px] uppercase text-slate-500 font-bold">Pagamento segurança</span><b id="calc-seguranca" class="text-lg text-emerald-700">R$ 0,00</b><p class="text-[11px] text-slate-500">Diária + adicional, quando aplicável</p></div>
+     </div>
+     <div id="preview-veiculo" class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"></div>
+     <div class="flex flex-col sm:flex-row gap-3"><button id="btn-submit-rota" class="flex-1 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl"><i class="fa-solid fa-floppy-disk mr-2"></i>Gravar serviço e congelar valores</button><button id="btn-limpar" type="button" class="px-5 py-3 border rounded-xl font-semibold">Limpar</button></div>
+     <p class="text-[11px] text-slate-400">Os valores e a identificação do proprietário são copiados para o registro no momento da gravação. Extratos futuros consultam esses valores salvos.</p>
+    </form>
+   </div>
+   <div class="bg-white rounded-2xl border p-4 shadow-sm">
+    <div class="flex justify-between items-center mb-3"><h2 class="font-bold"><i class="fa-solid fa-list mr-2 text-slate-500"></i>Histórico de serviços</h2><span id="contador-rotas" class="text-xs bg-slate-100 rounded-full px-3 py-1">0</span></div>
+    <div class="overflow-x-auto"><table class="w-full text-xs text-left min-w-[750px]"><thead class="text-slate-500 uppercase border-b"><tr><th class="p-3">Data</th><th class="p-3">Equipe</th><th class="p-3">Veículo</th><th class="p-3">Proprietário</th><th class="p-3 text-right">Total do serviço</th><th class="p-3">Tipo</th><th class="p-3">Ação</th></tr></thead><tbody id="tabela-rotas" class="divide-y"></tbody></table></div>
+   </div>
+  </section>
+  <section id="aba-fechamentos" class="tab-pane hidden space-y-4">
+   <div class="bg-white rounded-2xl border p-4 sm:p-6 shadow-sm">
+    <div class="flex flex-col sm:flex-row justify-between gap-3 border-b pb-4 mb-4"><div><h2 class="font-extrabold text-lg">Extratos de pagamento</h2><p class="text-xs text-slate-500">Valores históricos gravados no serviço; não são recalculados.</p></div><div class="flex flex-wrap gap-2"><div><label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Ciclo de pagamento</label><select id="filtro-ciclo" class="border bg-slate-50 rounded-lg p-2 text-xs"></select></div><div id="wrapper-filtro-pessoa" class="hidden"><label class="block text-[10px] font-bold uppercase text-slate-500 mb-1">Destinatário</label><select id="filtro-pessoa" class="border bg-slate-50 rounded-lg p-2 text-xs"></select></div></div></div>
+    <div id="box-extrato" class="space-y-4"></div>
+   </div>
+  </section>
+  <section id="aba-cadastros" class="tab-pane hidden space-y-5">
+   <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 text-xs text-indigo-900"><b>Cadastros independentes.</b> Cada prestador tem um código único e pode exercer uma ou ambas as funções. O veículo tem proprietário próprio. Alterar cadastro não altera lançamentos já gravados.</div>
+   <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+    <div class="bg-white border rounded-2xl p-4 space-y-3"><h3 class="font-extrabold">Prestadores</h3>
+     <form id="form-prestador" class="space-y-2"><input type="hidden" id="p-edit-id">
+      <input id="p-nome" required placeholder="Nome completo" class="w-full border bg-slate-50 rounded-lg p-2.5 text-sm">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2"><input id="p-apelido" required placeholder="Apelido para exibição" class="border bg-slate-50 rounded-lg p-2.5 text-sm"><input id="p-usuario" placeholder="Usuário de login (opcional)" class="border bg-slate-50 rounded-lg p-2.5 text-sm"></div>
+      <div class="flex flex-wrap gap-4 text-sm"><label class="flex items-center gap-2"><input type="checkbox" id="p-motorista"> Motorista</label><label class="flex items-center gap-2"><input type="checkbox" id="p-seguranca"> Segurança</label></div>
+      <div class="flex gap-2"><button id="btn-salvar-prestador" class="flex-1 bg-blue-600 text-white font-bold rounded-lg p-2.5 text-sm">Cadastrar prestador</button><button id="btn-cancelar-prestador" type="button" class="hidden border rounded-lg px-3 text-sm font-bold">Cancelar</button></div>
+     </form><div id="lista-prestadores" class="divide-y text-xs"></div>
+    </div>
+    <div class="bg-white border rounded-2xl p-4 space-y-3"><h3 class="font-extrabold">Veículos e proprietários</h3>
+     <form id="form-veiculo" class="space-y-2"><input type="hidden" id="v-edit-id"><input id="v-placa" required placeholder="Placa" class="w-full border bg-slate-50 rounded-lg p-2.5 text-sm uppercase"><div class="grid grid-cols-1 sm:grid-cols-2 gap-2"><input id="v-marca" placeholder="Marca" class="border bg-slate-50 rounded-lg p-2.5 text-sm"><input id="v-modelo" required placeholder="Modelo" class="border bg-slate-50 rounded-lg p-2.5 text-sm"></div><label class="block text-xs font-bold">Proprietário cadastrado</label><select id="v-proprietario" required class="w-full border bg-slate-50 rounded-lg p-2.5 text-sm"></select><div class="flex gap-2"><button id="btn-salvar-veiculo" class="flex-1 bg-indigo-600 text-white font-bold rounded-lg p-2.5 text-sm">Cadastrar veículo</button><button id="btn-cancelar-veiculo" type="button" class="hidden border rounded-lg px-3 text-sm font-bold">Cancelar</button></div></form><div id="lista-veiculos" class="divide-y text-xs"></div>
+    </div>
+   </div>
+   <div class="bg-white border rounded-2xl p-4 space-y-3"><h3 class="font-extrabold">Parâmetros para novos lançamentos</h3><p class="text-xs text-slate-500">Alterar aqui só afeta novos serviços. Os valores salvos nos registros anteriores permanecem intactos.</p>
+    <form id="form-parametros" class="grid grid-cols-2 sm:grid-cols-4 gap-3"><div><label class="text-xs font-bold">Diária (R$)</label><input id="cfg-diaria" type="number" step=".01" min="0" required class="w-full border rounded-lg p-2"></div><div><label class="text-xs font-bold">Adicional (R$)</label><input id="cfg-adic" type="number" step=".01" min="0" required class="w-full border rounded-lg p-2"></div><div><label class="text-xs font-bold">Valor por KM (R$)</label><input id="cfg-km" type="number" step=".01" min="0" required class="w-full border rounded-lg p-2"></div><div><label class="text-xs font-bold">Aluguel (R$)</label><input id="cfg-aluguel" type="number" step=".01" min="0" required class="w-full border rounded-lg p-2"></div><button class="col-span-2 sm:col-span-4 bg-slate-900 text-white font-bold rounded-lg p-2.5">Salvar parâmetros para novos serviços</button></form>
+   </div>
+  </section>
+  <section id="aba-antigos" class="tab-pane hidden space-y-4">
+   <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-950"><h2 class="font-extrabold mb-1"><i class="fa-solid fa-shield-halved mr-2"></i>Preservação dos registros antigos</h2><p>Registros do padrão anterior são mantidos na coleção <code>rotas</code>. Esta tela identifica registros sem a nova estrutura. Nenhuma migração altera ou apaga automaticamente os documentos antigos.</p></div>
+   <div class="bg-white border rounded-2xl p-4"><div class="flex flex-wrap items-center justify-between gap-2"><h3 class="font-bold">Registros anteriores à nova versão</h3><div class="flex flex-wrap gap-2"><button id="btn-exportar-antigos" class="bg-slate-900 text-white px-3 py-2 rounded-lg text-xs font-bold"><i class="fa-solid fa-download mr-1"></i>Exportar backup JSON</button><button id="btn-migrar-prestadores" class="bg-indigo-600 text-white px-3 py-2 rounded-lg text-xs font-bold">Vincular P0004/P0005 aos cadastros oficiais</button></div></div><p class="text-xs text-slate-600 mt-2">A migração de prestadores altera apenas vínculos. Para corrigir um lançamento antigo e colocá-lo no padrão atual, use “Editar e padronizar”. Confira os valores manualmente antes de salvar.</p>
+   <div id="editor-lancamento-antigo" class="hidden mt-4 border-2 border-indigo-200 bg-indigo-50/50 rounded-xl p-4">
+    <div class="flex items-start justify-between gap-3 mb-3"><div><h3 class="font-extrabold text-indigo-950">Editar e padronizar lançamento</h3><p class="text-xs text-slate-600">Os valores financeiros abaixo são editáveis e serão gravados como valores históricos congelados. Não são recalculados automaticamente.</p></div><button type="button" id="btn-cancelar-edicao-antiga" class="border bg-white rounded-lg px-3 py-2 text-xs font-bold">Cancelar</button></div>
+    <form id="form-editar-antigo" class="space-y-4"><input type="hidden" id="antigo-id">
+     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><div><label class="block text-xs font-bold mb-1">Data do serviço</label><input id="antigo-data" type="date" required class="w-full border rounded-lg p-2.5 bg-white"></div><div><label class="block text-xs font-bold mb-1">Hora inicial</label><input id="antigo-inicio" type="time" required class="w-full border rounded-lg p-2.5 bg-white"></div><div><label class="block text-xs font-bold mb-1">Hora final</label><input id="antigo-final" type="time" required class="w-full border rounded-lg p-2.5 bg-white"></div></div>
+     <div class="grid grid-cols-1 sm:grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">Motorista</label><select id="antigo-motorista" required class="w-full border rounded-lg p-2.5 bg-white"></select></div><div><label class="block text-xs font-bold mb-1">Segurança</label><select id="antigo-seguranca" required class="w-full border rounded-lg p-2.5 bg-white"></select></div><div><label class="block text-xs font-bold mb-1">Veículo / placa</label><select id="antigo-veiculo" required class="w-full border rounded-lg p-2.5 bg-white"></select><p id="antigo-owner-info" class="text-[11px] text-slate-500 mt-1"></p></div><div class="grid grid-cols-2 gap-2"><div><label class="block text-xs font-bold mb-1">KM total</label><input id="antigo-km" type="number" min="0" step="0.1" required class="w-full border rounded-lg p-2.5 bg-white"></div><div><label class="block text-xs font-bold mb-1">Pedágios (R$)</label><input id="antigo-pedagio" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5 bg-white"></div></div></div>
+     <div class="rounded-xl border bg-white p-3"><h4 class="font-extrabold text-sm mb-2">Valores históricos do motorista</h4><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">Diária (R$)</label><input id="antigo-mot-diaria" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div><div><label class="block text-xs font-bold mb-1">Adicional (R$)</label><input id="antigo-mot-adic" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div></div></div>
+     <div class="rounded-xl border bg-white p-3"><h4 class="font-extrabold text-sm mb-2">Valores históricos do segurança</h4><div class="grid grid-cols-2 gap-3"><div><label class="block text-xs font-bold mb-1">Diária (R$)</label><input id="antigo-seg-diaria" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div><div><label class="block text-xs font-bold mb-1">Adicional (R$)</label><input id="antigo-seg-adic" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div></div></div>
+     <div class="rounded-xl border bg-white p-3"><h4 class="font-extrabold text-sm mb-2">Valores históricos do proprietário do veículo</h4><div class="grid grid-cols-1 sm:grid-cols-3 gap-3"><div><label class="block text-xs font-bold mb-1">Aluguel (R$)</label><input id="antigo-aluguel" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div><div><label class="block text-xs font-bold mb-1">Reembolso KM (R$)</label><input id="antigo-km-valor" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div><div><label class="block text-xs font-bold mb-1">Reembolso pedágio (R$)</label><input id="antigo-pedagio-valor" type="number" min="0" step="0.01" required class="w-full border rounded-lg p-2.5"></div></div><p class="text-[11px] text-slate-500 mt-2">Confirme se os valores correspondem ao lançamento original. O valor de reembolso de pedágio pode ser diferente do campo “Pedágios” caso o registro antigo tenha sido lançado de outra forma.</p></div>
+     <div class="flex flex-col sm:flex-row gap-2"><button id="btn-salvar-antigo" class="flex-1 bg-indigo-600 text-white font-extrabold rounded-lg p-3"><i class="fa-solid fa-check mr-2"></i>Salvar e padronizar lançamento</button><button type="button" id="btn-cancelar-edicao-antiga-2" class="border bg-white rounded-lg px-4 py-3 font-bold">Cancelar</button></div>
+    </form>
+   </div><div id="lista-antigos" class="mt-3 space-y-2"></div></div>
+  </section>
+ </main>
+</div>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,signInWithEmailAndPassword,onAuthStateChanged,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {getFirestore,collection,addDoc,getDocs,deleteDoc,doc,setDoc} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const DOMINIO="@systemdiarias.com";
+const firebaseConfig={apiKey:"AIzaSyDYLDxzP1ZwC7XueID-I3wxpUQmYWBKZIQ",authDomain:"systemdiaria.firebaseapp.com",projectId:"systemdiaria",storageBucket:"systemdiaria.firebasestorage.app",messagingSenderId:"325090947197",appId:"1:325090947197:web:0cc61116fe5c6b67d00114"};
+const app=initializeApp(firebaseConfig),auth=getAuth(app),db=getFirestore(app);
+const MAPA_USUARIOS={
+ adm:{nome:"Administrador",apelido:"Administrador",role:"admin"},
+ jlima:{nome:"Jesse Lima da Silva",apelido:"J. Lima",role:"prestador",legacyTipo:"motorista/seguranca"},
+ acaetano:{nome:"Anderson Caetano de Souza",apelido:"Anderson",role:"prestador",legacyTipo:"motorista/seguranca"},
+ akaique:{nome:"Andre Kaique Cloraso",apelido:"Kaique",role:"prestador",legacyTipo:"motorista/seguranca"}
+};
+const PARAM_DEFAULT={diaria:190,adicional:30,km:0.68,aluguel:60};
+let usuarioLogado=null,rotas=[],prestadores=[],veiculos=[],parametros={...PARAM_DEFAULT},busy=false;
+const $=id=>document.getElementById(id);
+const n=v=>{const x=Number(v);return Number.isFinite(x)?x:0};
+const brl=v=>n(v).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const uid=prefix=>prefix+"_"+(crypto.randomUUID?crypto.randomUUID():Date.now()+"_"+Math.random().toString(36).slice(2,8));
+function toast(msg,ok=true){$("toast").className=`p-3 rounded-xl text-xs font-semibold ${ok?"bg-emerald-600 text-white":"bg-rose-600 text-white"}`;$("toast").textContent=msg;setTimeout(()=>$("toast").classList.add("hidden"),5000)}
+function username(v){return (v||"").toLowerCase().trim().split("@")[0].trim()}
+function getPrestador(id){return prestadores.find(p=>p.id===id)}
+function getVeiculo(id){return veiculos.find(v=>v.id===id)}
+function ciclo(data){if(!data)return {id:"",label:""};const [y,m,d]=data.split("-").map(Number);if(d<=15)return {id:`${y}-${String(m).padStart(2,"0")}-25`,label:`25/${String(m).padStart(2,"0")}/${y}`};const dt=new Date(y,m,10);return {id:`${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-10`,label:`10/${String(dt.getMonth()+1).padStart(2,"0")}/${dt.getFullYear()}`}}
+function minutos(){const a=$("horaInicio").value,b=$("horaFinal").value;if(!a||!b)return 0;const [h1,m1]=a.split(":").map(Number),[h2,m2]=b.split(":").map(Number);let x=h1*60+m1,y=h2*60+m2;if(y<x)y+=1440;return y-x}
+function duration(m){return `${Math.floor(m/60)}h ${String(m%60).padStart(2,"0")}m`}
+function newCalc(){const mins=minutos(),extra=mins>330?parametros.adicional:0,km=n($("kmTotal").value),toll=n($("pedagioTotal").value);const mot=parametros.diaria+extra,seg=parametros.diaria+extra;const v=getVeiculo($("veiculoSelect").value);$("calc-duracao").textContent=duration(mins);$("calc-adicional").textContent=extra?`Adicional de ${brl(extra)} aplicado`:"Sem adicional (até 5h30)";$("calc-motorista").textContent=brl(mot);$("calc-seguranca").textContent=brl(seg);const dt=$("dataRota").value;if(dt)$("badge-ciclo").textContent="Pagamento previsto: "+ciclo(dt).label;
+ const owner=getPrestador(v?.proprietarioId);$("info-proprietario").textContent=owner?`Proprietário: ${owner.apelido} • código ${owner.codigo}`:"Selecione veículo com proprietário";
+ $("preview-veiculo").innerHTML=v?`<b>Valores do veículo para este serviço:</b> aluguel ${brl(parametros.aluguel)} + KM ${brl(km*parametros.km)} (${km.toFixed(1)} km) + pedágios ${brl(toll)} → <b>${brl(parametros.aluguel+km*parametros.km+toll)}</b> destinados a ${esc(owner?.nome||"proprietário não identificado")}. <span class="block mt-1">Estes valores serão congelados ao gravar o serviço.</span>`:"Selecione um veículo para visualizar o destinatário dos valores do veículo.";
+ return {mins,extra,km,toll,mot,seg,v,owner};
+}
+function populateSelects(){
+ const mot=prestadores.filter(p=>p.funcoes?.includes("motorista")),seg=prestadores.filter(p=>p.funcoes?.includes("seguranca"));
+ $("motoristaSelect").innerHTML=mot.map(p=>`<option value="${esc(p.id)}">${esc(p.apelido)} — ${esc(p.codigo)}</option>`).join("");
+ $("segurancaSelect").innerHTML=seg.map(p=>`<option value="${esc(p.id)}">${esc(p.apelido)} — ${esc(p.codigo)}</option>`).join("");
+ $("veiculoSelect").innerHTML=veiculos.map(v=>`<option value="${esc(v.id)}">${esc(v.placa)} — ${esc(v.modelo)}</option>`).join("");
+ $("v-proprietario").innerHTML=prestadores.map(p=>`<option value="${esc(p.id)}">${esc(p.nome)} (${esc(p.codigo)} — ${esc(p.apelido)})</option>`).join("");
+ renderCadastros();newCalc();
+}
+function renderCadastros(){
+ $("lista-prestadores").innerHTML=prestadores.map(p=>`<div class="py-2 flex justify-between gap-3"><div><b>${esc(p.codigo)} — ${esc(p.nome)}</b><div class="text-slate-500">${esc(p.apelido)} • ${esc((p.funcoes||[]).map(x=>x==="motorista"?"Motorista":"Segurança").join(" + "))}${p.usuario?` • login: ${esc(p.usuario)}`:""}</div></div><div class="flex items-center gap-3 shrink-0"><button class="text-blue-600 font-bold" data-edit-p="${esc(p.id)}" title="Editar prestador"><i class="fa-solid fa-pen-to-square"></i> Editar</button><button class="text-rose-600" data-del-p="${esc(p.id)}" title="Excluir cadastro (não apaga históricos)"><i class="fa-solid fa-trash"></i></button></div></div>`).join("")||`<p class="py-3 text-slate-400">Nenhum prestador cadastrado.</p>`;
+ $("lista-veiculos").innerHTML=veiculos.map(v=>{const p=getPrestador(v.proprietarioId);return `<div class="py-2 flex justify-between gap-3"><div><b>${esc(v.placa)} — ${esc(v.modelo)}</b><div class="text-slate-500">${esc(v.marca||"")} • Proprietário: ${esc(p?.nome||v.proprietarioNome||"Não identificado")}</div></div><div class="flex items-center gap-3 shrink-0"><button class="text-blue-600 font-bold" data-edit-v="${esc(v.id)}" title="Editar veículo"><i class="fa-solid fa-pen-to-square"></i> Editar</button><button class="text-rose-600" data-del-v="${esc(v.id)}" title="Excluir cadastro (não apaga históricos)"><i class="fa-solid fa-trash"></i></button></div></div>`}).join("")||`<p class="py-3 text-slate-400">Nenhum veículo cadastrado.</p>`;
+}
+async function loadCollection(name){const snap=await getDocs(collection(db,name));return snap.docs.map(d=>({id:d.id,...d.data()}))}
+async function loadAll(){
+ try{
+  const [r,p,v,c]=await Promise.all([loadCollection("rotas"),loadCollection("prestadores"),loadCollection("veiculos"),loadCollection("systemConfig")]);
+  rotas=r;
+  if(p.length)prestadores=p.filter(x=>!x.mergedInto);else {prestadores=defaultPrestadores();for(const x of prestadores)await setDoc(doc(db,"prestadores",x.id),x)}
+  if(v.length)veiculos=v;else {veiculos=defaultVeiculos();for(const x of veiculos)await setDoc(doc(db,"veiculos",x.id),x)}
+  const cfg=c.find(x=>x.id==="parametros");if(cfg)parametros={diaria:n(cfg.diaria),adicional:n(cfg.adicional),km:n(cfg.km),aluguel:n(cfg.aluguel)};
+  setCfgInputs();populateSelects();renderRoutes();populateCycle();renderExtract();renderLegacy();
+ }catch(e){console.error(e);toast("Não foi possível carregar dados do Firebase: "+e.message,false)}
+}
+function defaultPrestadores(){
+ const arr=[
+ {id:"p_jlima",codigo:"P0001",nome:"Jesse Lima da Silva",apelido:"J. Lima",usuario:"jlima",funcoes:["motorista","seguranca"]},
+ {id:"p_acaetano",codigo:"P0002",nome:"Anderson Caetano de Souza",apelido:"Anderson",usuario:"acaetano",funcoes:["motorista","seguranca"]},
+ {id:"p_akaique",codigo:"P0003",nome:"Andre Kaique Cloraso",apelido:"Kaique",usuario:"akaique",funcoes:["motorista","seguranca"]}
+ ];return arr;
+}
+function defaultVeiculos(){return []}
+function isAdmin(){return usuarioLogado?.role==="admin"}
+function visibleRoutes(){if(isAdmin())return rotas;const p=prestadores.find(x=>x.usuario===usuarioLogado.username);return rotas.filter(r=>r.motoristaId===p?.id||r.segurancaId===p?.id||r.pagamentos?.some(x=>x.prestadorId===p?.id)||r.motorista===usuarioLogado.apelido||r.seguranca===usuarioLogado.apelido)}
+function routeTotal(r){if(r.versaoSchema===2)return n(r.totalRota);return n(r.subMotorista)+n(r.subSeguranca)}
+function renderRoutes(){
+ const rows=visibleRoutes().sort((a,b)=>(b.data||"").localeCompare(a.data||""));$("contador-rotas").textContent=`${rows.length} serviços`;
+ $("tabela-rotas").innerHTML=rows.map(r=>{const old=r.versaoSchema!==2;const owner=old?(r.proprietarioVeiculoNome||"Pendente/antigo"):(r.proprietarioNomeSnapshot||"—");const total=routeTotal(r);return `<tr><td class="p-3">${esc(fmtDate(r.data))}</td><td class="p-3">${esc(r.motoristaNomeSnapshot||r.motorista||"—")}<br><span class="text-slate-500">Seg.: ${esc(r.segurancaNomeSnapshot||r.seguranca||"—")}</span></td><td class="p-3">${esc(r.placa||"—")}<br>${esc(r.modeloVeiculoSnapshot||"")}</td><td class="p-3">${esc(owner)}</td><td class="p-3 text-right font-bold">${old&&!(r.subMotorista||r.subSeguranca)?`<span class="text-amber-700">Pendente</span>`:brl(total)}</td><td class="p-3">${old?'<span class="text-amber-700 font-bold">ANTIGO</span>':'<span class="text-emerald-700 font-bold">CONGELADO</span>'}</td><td class="p-3">${isAdmin()?`<button class="text-rose-600" data-del-r="${esc(r.id)}" title="Excluir rota"><i class="fa-solid fa-trash"></i></button>`:"—"}</td></tr>`}).join("")||`<tr><td colspan="7" class="p-6 text-center text-slate-400">Nenhum serviço encontrado.</td></tr>`;
+}
+function fmtDate(d){if(!d)return "—";const a=d.split("-");return a.length===3?`${a[2]}/${a[1]}/${a[0]}`:d}
+function paymentsForRoute(r){
+ if(r.versaoSchema===2)return r.pagamentos||[];
+ // Compatibilidade: extrai apenas valores históricos já gravados. Nunca usa os parâmetros atuais.
+ const out=[];
+ if(r.motorista){const daily=n(r.valDiaria),adic=n(r.valAdic),rent=n(r.valAluguel),km=n(r.valKm),toll=n(r.pedagio);const total=n(r.subMotorista);
+  if(r.subMotorista!==undefined||r.valDiaria!==undefined)out.push({prestadorId:r.motoristaId||"legacy-mot-"+r.motorista,prestadorNome:r.motoristaNomeSnapshot||r.motorista,codigo:r.motoristaCodigo||"ANTIGO",apelido:r.motorista,tipo:"motorista",diaria:daily,adicional:adic,aluguel:rent,km:km,pedagio:toll,liquido:daily+adic+rent,reembolso:km+toll,total:total||daily+adic+rent+km+toll,legacy:true});
+ }
+ if(r.seguranca){const daily=n(r.valDiaria),adic=n(r.valAdic),total=n(r.subSeguranca);if(r.subSeguranca!==undefined||r.valDiaria!==undefined)out.push({prestadorId:r.segurancaId||"legacy-seg-"+r.seguranca,prestadorNome:r.segurancaNomeSnapshot||r.seguranca,codigo:r.segurancaCodigo||"ANTIGO",apelido:r.seguranca,tipo:"seguranca",diaria:daily,adicional:adic,aluguel:0,km:0,pedagio:0,liquido:daily+adic,reembolso:0,total:total||daily+adic,legacy:true})}
+ // Novo destinatário do veículo não é presumido nos registros antigos.
+ return out;
+}
+function allRecipients(){
+ const list=[];
+ for(const p of prestadores)list.push({key:"p:"+p.id,id:p.id,nome:p.nome,apelido:p.apelido,codigo:p.codigo,tipo:"prestador"});
+ for(const r of rotas.filter(x=>x.versaoSchema!==2)){
+  for(const [role,name] of [["motorista",r.motorista],["seguranca",r.seguranca]])if(name&&!list.some(x=>x.apelido===name&&x.tipo===role))list.push({key:`legacy:${role}:${name}`,id:`legacy-${role}-${name}`,nome:name,apelido:name,codigo:"ANTIGO",tipo:role,legacy:true});
+ }
+ return list;
+}
+function populateCycle(){
+ const selected=$("filtro-ciclo").value;const labels=[...new Map(rotas.filter(r=>r.dataPagamento||r.cicloId).map(r=>[r.dataPagamento||r.cicloId,{id:r.cicloId||r.dataPagamento,label:r.dataPagamento||r.cicloId}])).values()].sort((a,b)=>String(b.id).localeCompare(String(a.id)));
+ $("filtro-ciclo").innerHTML=labels.map(x=>`<option value="${esc(x.id)}">${esc(x.label)}</option>`).join("")||'<option value="">Sem lançamentos</option>';
+ if(labels.some(x=>x.id===selected))$("filtro-ciclo").value=selected;
+ if(isAdmin()){
+  const prev=$("filtro-pessoa").value;const ppl=allRecipients();
+  $("filtro-pessoa").innerHTML=ppl.map(p=>`<option value="${esc(p.key)}">${esc(p.apelido)} — ${esc(p.codigo)}${p.tipo==="motorista"?" (Motorista)":p.tipo==="seguranca"?" (Segurança)":" (Prestador)"}</option>`).join("");
+  if(ppl.some(p=>p.key===prev))$("filtro-pessoa").value=prev;
+ }else{
+  const p=prestadores.find(x=>x.usuario===usuarioLogado.username);
+  $("filtro-pessoa").innerHTML=p?`<option value="p:${esc(p.id)}">${esc(p.apelido)}</option>`:"";
+ }
+}
+function renderExtract(){
+ const box=$("box-extrato");if(!usuarioLogado)return;
+ const cycle=$("filtro-ciclo").value;
+ let chosen;
+ if(isAdmin()){chosen=allRecipients().find(p=>p.key===$("filtro-pessoa").value)}
+ else {const p=prestadores.find(x=>x.usuario===usuarioLogado.username);if(p)chosen={key:"p:"+p.id,id:p.id,nome:p.nome,apelido:p.apelido,codigo:p.codigo};else chosen={key:"legacy:"+usuarioLogado.legacyTipo+":"+usuarioLogado.apelido,id:"legacy-"+usuarioLogado.legacyTipo+"-"+usuarioLogado.apelido,nome:usuarioLogado.nome,apelido:usuarioLogado.apelido,tipo:usuarioLogado.legacyTipo}}
+ if(!cycle||!chosen){box.innerHTML='<p class="text-sm text-slate-400 text-center p-8">Selecione um ciclo e um destinatário com registros.</p>';return}
+ const entries=[];
+ for(const r of rotas){
+  if((r.cicloId||r.dataPagamento)!==cycle)continue;
+  for(const p of paymentsForRoute(r)){
+   const matches=chosen.key.startsWith("p:")?p.prestadorId===chosen.id:(p.tipo===chosen.tipo&&p.apelido===chosen.apelido);
+   if(matches)entries.push({r,p});
+  }
+ }
+ const sum=k=>entries.reduce((a,x)=>a+n(x.p[k]),0),total=sum("total"),net=sum("liquido"),refund=sum("reembolso"),daily=sum("diaria"),extra=sum("adicional"),rent=sum("aluguel"),km=sum("km"),toll=sum("pedagio");
+ const services=entries.length;
+ box.innerHTML=`<div class="bg-slate-900 text-white rounded-2xl p-4 flex flex-wrap justify-between gap-3"><div><div class="text-xs text-slate-300">Destinatário do pagamento</div><h3 class="text-xl font-extrabold">${esc(chosen.nome||chosen.apelido)}</h3><p class="text-xs text-slate-300 mt-1">Código: ${esc(chosen.codigo||"—")} • Ciclo: ${esc(cycle)}</p></div><div><div class="text-xs text-slate-300">Total histórico</div><div class="text-2xl font-black">${brl(total)}</div><div class="text-xs text-slate-300">${services} item(ns) de pagamento</div></div></div>
+ <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">${card("Diárias",daily)}${card("Adicionais",extra)}${card("Aluguel de veículo",rent)}${card("Reembolso KM",km)}${card("Pedágios",toll)}${card("Líquido / remuneração",net)}${card("Reembolsos",refund)}${card("Total a pagar",total,true)}</div>
+ <div class="bg-white border rounded-xl overflow-x-auto"><table class="w-full min-w-[650px] text-xs text-left"><thead class="bg-slate-50 uppercase text-slate-500"><tr><th class="p-3">Data</th><th class="p-3">Serviço / função</th><th class="p-3">Valores congelados</th><th class="p-3 text-right">Total</th><th class="p-3">Origem</th></tr></thead><tbody class="divide-y">${entries.map(({r,p})=>`<tr><td class="p-3">${esc(fmtDate(r.data))}</td><td class="p-3">${esc(p.tipo==="veiculo"?"Proprietário do veículo":p.tipo==="motorista"?"Motorista":p.tipo==="seguranca"?"Segurança":"Prestador")}<br><span class="text-slate-500">${esc(r.placa||"—")} • ${esc(r.horaInicio||"")}–${esc(r.horaFinal||"")}</span></td><td class="p-3">Diária ${brl(p.diaria)} + adicional ${brl(p.adicional)} + aluguel ${brl(p.aluguel)} + KM ${brl(p.km)} + pedágio ${brl(p.pedagio)}</td><td class="p-3 text-right font-extrabold">${brl(p.total)}</td><td class="p-3">${p.legacy?'<span class="text-amber-700 font-bold">Legado</span>':'<span class="text-emerald-700 font-bold">Congelado</span>'}</td></tr>`).join("")||'<tr><td colspan="5" class="p-6 text-center text-slate-400">Nenhum valor registrado para este destinatário neste ciclo. Registros antigos sem valores salvos aparecem para conferência na aba Registros antigos.</td></tr>'}</tbody></table></div>
+ <p class="text-[11px] text-slate-500">O extrato soma os valores registrados nos serviços. Não aplica as tarifas atuais aos serviços anteriores.</p>`;
+}
+function card(label,val,dark=false){return `<div class="${dark?"bg-blue-50 border-blue-200":"bg-white border-slate-200"} border rounded-xl p-3"><span class="text-[11px] text-slate-500 block">${label}</span><b class="text-lg ${dark?"text-blue-800":"text-slate-900"}">${brl(val)}</b></div>`}
+function renderLegacy(){
+ const old=rotas.filter(r=>r.versaoSchema!==2);
+ $("lista-antigos").innerHTML=old.map(r=>{const ok=r.subMotorista!==undefined||r.subSeguranca!==undefined||r.valDiaria!==undefined;return `<div class="border rounded-xl p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2"><div><b>${esc(fmtDate(r.data))} • ${esc(r.motorista||r.motoristaNomeSnapshot||"Motorista não identificado")} / ${esc(r.seguranca||r.segurancaNomeSnapshot||"Segurança não identificado")}</b><p class="text-xs text-slate-500">Placa ${esc(r.placa||"—")} • ciclo ${esc(r.dataPagamento||r.cicloId||"não informado")}</p><p class="text-xs ${ok?"text-emerald-700":"text-rose-700"}">${ok?"Há alguns valores históricos salvos; confira os campos antes de padronizar.":"Não foram encontrados valores financeiros suficientes; preencha manualmente."}</p></div><div class="flex items-center gap-2"><span class="text-[10px] font-bold bg-amber-100 text-amber-800 rounded-full px-3 py-1">PADRÃO ANTIGO</span><button type="button" data-edit-legacy="${esc(r.id)}" class="bg-indigo-600 text-white rounded-lg px-3 py-2 text-xs font-bold">Editar e padronizar</button></div></div>`}).join("")||'<p class="text-sm text-slate-400 py-4">Nenhum registro antigo identificado.</p>';
+}
+function legacyOptions(selectId,items,placeholder){const el=$(selectId);el.innerHTML=`<option value="">${esc(placeholder)}</option>`+items.map(x=>`<option value="${esc(x.id)}">${esc(x.apelido||x.nome||x.placa)} — ${esc(x.codigo||x.placa||"")}</option>`).join("")}
+function openLegacyEditor(id){
+ const r=rotas.find(x=>x.id===id);if(!r)return;
+ legacyOptions("antigo-motorista",prestadores.filter(p=>p.funcoes?.includes("motorista")),"Selecione o motorista");
+ legacyOptions("antigo-seguranca",prestadores.filter(p=>p.funcoes?.includes("seguranca")),"Selecione o segurança");
+ legacyOptions("antigo-veiculo",veiculos,"Selecione o veículo cadastrado");
+ $("antigo-id").value=r.id;$("antigo-data").value=/^\d{4}-\d{2}-\d{2}$/.test(r.data||"")?r.data:"";
+ $("antigo-inicio").value=(r.horaInicio||r.horaInicial||"").slice(0,5);$("antigo-final").value=(r.horaFinal||r.horaFim||"").slice(0,5);
+ const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+ const mot=prestadores.find(p=>p.id===r.motoristaId||p.codigo===(r.motoristaCodigo||r.motoristaCodigoSnapshot)||norm(p.nome)===norm(r.motoristaNomeSnapshot||r.motorista)||norm(p.apelido)===norm(r.motorista));
+ const seg=prestadores.find(p=>p.id===r.segurancaId||p.codigo===(r.segurancaCodigo||r.segurancaCodigoSnapshot)||norm(p.nome)===norm(r.segurancaNomeSnapshot||r.seguranca)||norm(p.apelido)===norm(r.seguranca));
+ const v=veiculos.find(x=>x.id===r.veiculoId||String(x.placa||"").replace(/[^a-z0-9]/gi,"").toUpperCase()===String(r.placa||"").replace(/[^a-z0-9]/gi,"").toUpperCase());
+ $("antigo-motorista").value=mot?.id||"";$("antigo-seguranca").value=seg?.id||"";$("antigo-veiculo").value=v?.id||"";
+ $("antigo-km").value=n(r.km??r.kmTotal??0);$("antigo-pedagio").value=n(r.pedagio??r.pedagioTotal??0);
+ const daily=n(r.valDiaria??parametros.diaria),extra=n(r.valAdic??0);
+ $("antigo-mot-diaria").value=n(r.subMotorista)!==0&&r.valDiaria===undefined?Math.max(0,n(r.subMotorista)-extra):daily;
+ $("antigo-mot-adic").value=extra;$("antigo-seg-diaria").value=n(r.subSeguranca)!==0&&r.valDiaria===undefined?Math.max(0,n(r.subSeguranca)-extra):daily;$("antigo-seg-adic").value=extra;
+ $("antigo-aluguel").value=n(r.valAluguel??parametros.aluguel);$("antigo-km-valor").value=n(r.valKm??(n(r.km??r.kmTotal??0)*parametros.km));$("antigo-pedagio-valor").value=n(r.pedagio??r.pedagioTotal??0);
+ updateLegacyOwnerInfo();$("editor-lancamento-antigo").classList.remove("hidden");$("editor-lancamento-antigo").scrollIntoView({behavior:"smooth",block:"start"});
+}
+function updateLegacyOwnerInfo(){const v=getVeiculo($("antigo-veiculo").value),p=getPrestador(v?.proprietarioId);$("antigo-owner-info").textContent=p?`Proprietário dos reembolsos: ${p.nome} • ${p.codigo}`:"Selecione um veículo cadastrado com proprietário definido."}
+function closeLegacyEditor(){$("editor-lancamento-antigo").classList.add("hidden");$("form-editar-antigo").reset();$("antigo-id").value=""}
+
+function setCfgInputs(){$("cfg-diaria").value=parametros.diaria;$("cfg-adic").value=parametros.adicional;$("cfg-km").value=parametros.km;$("cfg-aluguel").value=parametros.aluguel;$("top-cfg-diaria").textContent=brl(parametros.diaria);$("top-cfg-adic").textContent=brl(parametros.adicional);$("top-cfg-km").textContent=brl(parametros.km)+"/km";$("top-cfg-aluguel").textContent=brl(parametros.aluguel)}
+$("form-login").addEventListener("submit",async e=>{e.preventDefault();const u=username($("login-username").value),err=$("login-erro"),btn=$("btn-login");err.classList.add("hidden");btn.disabled=true;try{await signInWithEmailAndPassword(auth,u+DOMINIO,$("login-senha").value)}catch(ex){err.textContent=`Falha no acesso para "${u}". Verifique usuário, senha e conta no Firebase.`;err.classList.remove("hidden")}finally{btn.disabled=false}});
+$("btn-logout").addEventListener("click",()=>signOut(auth));
+onAuthStateChanged(auth,async user=>{if(!user){usuarioLogado=null;$("auth-screen").classList.remove("hidden");$("app-container").classList.add("hidden");return}
+ const u=username(user.email),mapped=MAPA_USUARIOS[u];usuarioLogado={username:u,email:user.email,...(mapped||{nome:u,apelido:u,role:"prestador"})};
+ $("user-display-name").textContent=usuarioLogado.nome;$("user-display-role").textContent=isAdmin()?"ADMINISTRADOR":"PRESTADOR";
+ $("auth-screen").classList.add("hidden");$("app-container").classList.remove("hidden");
+ $("tab-cadastros-btn").classList.toggle("hidden",!isAdmin());$("tab-antigos-btn").classList.toggle("hidden",!isAdmin());$("wrapper-filtro-pessoa").classList.toggle("hidden",!isAdmin());
+ await loadAll();
+});
+document.querySelectorAll(".tab-btn").forEach(b=>b.addEventListener("click",()=>{if(b.classList.contains("hidden"))return;document.querySelectorAll(".tab-btn").forEach(x=>x.classList.remove("tab-active"));b.classList.add("tab-active");document.querySelectorAll(".tab-pane").forEach(x=>x.classList.add("hidden"));$("aba-"+b.dataset.tab).classList.remove("hidden");if(b.dataset.tab==="fechamentos"){populateCycle();renderExtract()}if(b.dataset.tab==="antigos")renderLegacy()}));
+["dataRota","horaInicio","horaFinal","kmTotal","pedagioTotal","veiculoSelect"].forEach(id=>$(id).addEventListener("input",newCalc));
+$("form-rota").addEventListener("submit",async e=>{
+ e.preventDefault();if(busy)return;const c=newCalc();if(!c.v||!c.owner){toast("O veículo precisa ter proprietário cadastrado antes de gravar.",false);return}
+ const mot=getPrestador($("motoristaSelect").value),seg=getPrestador($("segurancaSelect").value);if(!mot||!seg){toast("Cadastre pelo menos um motorista e um segurança habilitados.",false);return}
+ busy=true;$("btn-submit-rota").disabled=true;
+ try{
+  const dt=$("dataRota").value,cy=ciclo(dt),kmVal=Math.round(c.km*parametros.km*100)/100,toll=Math.round(c.toll*100)/100,rent=Math.round(parametros.aluguel*100)/100;
+  const payMot={prestadorId:mot.id,prestadorCodigo:mot.codigo,prestadorNome:mot.nome,apelido:mot.apelido,tipo:"motorista",diaria:parametros.diaria,adicional:c.extra,aluguel:0,km:0,pedagio:0,liquido:parametros.diaria+c.extra,reembolso:0,total:parametros.diaria+c.extra};
+  const paySeg={prestadorId:seg.id,prestadorCodigo:seg.codigo,prestadorNome:seg.nome,apelido:seg.apelido,tipo:"seguranca",diaria:parametros.diaria,adicional:c.extra,aluguel:0,km:0,pedagio:0,liquido:parametros.diaria+c.extra,reembolso:0,total:parametros.diaria+c.extra};
+  const payOwner={prestadorId:c.owner.id,prestadorCodigo:c.owner.codigo,prestadorNome:c.owner.nome,apelido:c.owner.apelido,tipo:"veiculo",diaria:0,adicional:0,aluguel:rent,km:kmVal,pedagio:toll,liquido:rent,reembolso:kmVal+toll,total:rent+kmVal+toll};
+  // Agrupa se o proprietário também for motorista ou segurança, sem duplicar destinatários.
+  const map=new Map();for(const p of [payMot,paySeg,payOwner]){const key=p.prestadorId;if(!map.has(key))map.set(key,{...p});else{const q=map.get(key);for(const k of ["diaria","adicional","aluguel","km","pedagio","liquido","reembolso","total"])q[k]=Math.round((n(q[k])+n(p[k]))*100)/100;q.tipo=q.tipo==="veiculo"?p.tipo:q.tipo==="motorista"&&p.tipo==="seguranca"?"motorista/seguranca":q.tipo;}}
+  const payments=[...map.values()].map(p=>({...p,totalRotaItem:p.total}));
+  const route={versaoSchema:2,data:dt,horaInicio:$("horaInicio").value,horaFinal:$("horaFinal").value,duracao:duration(c.mins),minutosDuracao:c.mins,atingiu5h30:c.extra>0,km:c.km,placa:c.v.placa,modeloVeiculoSnapshot:c.v.modelo,marcaVeiculoSnapshot:c.v.marca||"",veiculoId:c.v.id,proprietarioIdSnapshot:c.owner.id,proprietarioCodigoSnapshot:c.owner.codigo,proprietarioNomeSnapshot:c.owner.nome,motoristaId:mot.id,motoristaCodigoSnapshot:mot.codigo,motoristaNomeSnapshot:mot.nome,motorista:mot.apelido,segurancaId:seg.id,segurancaCodigoSnapshot:seg.codigo,segurancaNomeSnapshot:seg.nome,seguranca:seg.apelido,paramsSnapshot:{...parametros},valDiaria:parametros.diaria,valAdic:c.extra,valKm:kmVal,valAluguel:rent,pedagio:toll,pagamentos:payments,cicloId:cy.id,dataPagamento:cy.label,totalRota:payments.reduce((s,p)=>s+p.total,0),criadoPor:usuarioLogado.username,createdAt:new Date().toISOString()};
+  const ref=await addDoc(collection(db,"rotas"),route);rotas.push({id:ref.id,...route});$("form-rota").reset();$("kmTotal").value="0";$("pedagioTotal").value="0";populateSelects();renderRoutes();populateCycle();renderExtract();renderLegacy();toast("Serviço gravado. Os valores foram congelados no registro.");
+ }catch(ex){console.error(ex);toast("Erro ao gravar no Firebase: "+ex.message,false)}finally{busy=false;$("btn-submit-rota").disabled=false}
+});
+$("btn-limpar").addEventListener("click",()=>{$("form-rota").reset();$("kmTotal").value="0";$("pedagioTotal").value="0";newCalc()});
+function resetPrestadorForm(){ $("form-prestador").reset(); $("p-edit-id").value=""; $("btn-salvar-prestador").textContent="Cadastrar prestador"; $("btn-cancelar-prestador").classList.add("hidden"); }
+function resetVeiculoForm(){ $("form-veiculo").reset(); $("v-edit-id").value=""; $("btn-salvar-veiculo").textContent="Cadastrar veículo"; $("btn-cancelar-veiculo").classList.add("hidden"); }
+function editPrestador(id){const p=getPrestador(id);if(!p)return;$("p-edit-id").value=p.id;$("p-nome").value=p.nome||"";$("p-apelido").value=p.apelido||"";$("p-usuario").value=p.usuario||"";$("p-motorista").checked=(p.funcoes||[]).includes("motorista");$("p-seguranca").checked=(p.funcoes||[]).includes("seguranca");$("btn-salvar-prestador").textContent="Salvar alterações";$("btn-cancelar-prestador").classList.remove("hidden");$("form-prestador").scrollIntoView({behavior:"smooth",block:"center"});}
+function editVeiculo(id){const v=getVeiculo(id);if(!v)return;$("v-edit-id").value=v.id;$("v-placa").value=v.placa||"";$("v-marca").value=v.marca||"";$("v-modelo").value=v.modelo||"";populateSelects();$("v-proprietario").value=v.proprietarioId||"";$("btn-salvar-veiculo").textContent="Salvar alterações";$("btn-cancelar-veiculo").classList.remove("hidden");$("form-veiculo").scrollIntoView({behavior:"smooth",block:"center"});}
+$("btn-cancelar-prestador").addEventListener("click",resetPrestadorForm);$("btn-cancelar-veiculo").addEventListener("click",resetVeiculoForm);
+$("form-prestador").addEventListener("submit",async e=>{e.preventDefault();if(!isAdmin())return;const funcoes=[];if($("p-motorista").checked)funcoes.push("motorista");if($("p-seguranca").checked)funcoes.push("seguranca");if(!funcoes.length){toast("Selecione ao menos uma função.",false);return}
+ const editId=$("p-edit-id").value;const existing=editId?getPrestador(editId):null;const codigo=existing?.codigo||"P"+String(prestadores.reduce((m,p)=>Math.max(m,Number(String(p.codigo||"").replace(/\D/g,""))||0),0)+1).padStart(4,"0");const p={...(existing||{}),id:editId||uid("p"),codigo,nome:$("p-nome").value.trim(),apelido:$("p-apelido").value.trim(),usuario:username($("p-usuario").value),funcoes,createdAt:existing?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+ try{await setDoc(doc(db,"prestadores",p.id),p);if(existing)prestadores=prestadores.map(x=>x.id===p.id?p:x);else prestadores.push(p);resetPrestadorForm();populateSelects();populateCycle();renderExtract();toast(existing?"Cadastro do prestador atualizado. Os lançamentos históricos permanecem inalterados.":"Prestador cadastrado com código "+codigo)}catch(ex){toast("Erro ao salvar prestador: "+ex.message,false)}
+});
+$("form-veiculo").addEventListener("submit",async e=>{e.preventDefault();if(!isAdmin())return;const editId=$("v-edit-id").value;const placa=$("v-placa").value.trim().toUpperCase().replace(/\s/g,"");if(veiculos.some(v=>v.placa.toUpperCase()===placa&&v.id!==editId)){toast("Já existe veículo cadastrado com essa placa.",false);return}const p=getPrestador($("v-proprietario").value);if(!p){toast("Selecione um proprietário válido.",false);return}
+ const existing=editId?getVeiculo(editId):null;const v={...(existing||{}),id:editId||uid("v"),placa,marca:$("v-marca").value.trim().toUpperCase(),modelo:$("v-modelo").value.trim().toUpperCase(),proprietarioId:p.id,proprietarioNome:p.nome,createdAt:existing?.createdAt||new Date().toISOString(),updatedAt:new Date().toISOString()};
+ try{await setDoc(doc(db,"veiculos",v.id),v);if(existing)veiculos=veiculos.map(x=>x.id===v.id?v:x);else veiculos.push(v);resetVeiculoForm();populateSelects();renderRoutes();toast(existing?"Cadastro do veículo atualizado. Os históricos permanecem com os dados congelados.":"Veículo cadastrado e proprietário vinculado.")}catch(ex){toast("Erro ao salvar veículo: "+ex.message,false)}
+});
+document.addEventListener("click",async e=>{const ep=e.target.closest("[data-edit-p]"),ev=e.target.closest("[data-edit-v]"),bp=e.target.closest("[data-del-p]"),bv=e.target.closest("[data-del-v]"),br=e.target.closest("[data-del-r]");if(!isAdmin())return;if(ep){editPrestador(ep.dataset.editP);return}if(ev){editVeiculo(ev.dataset.editV);return}
+ if(bp){const id=bp.dataset.delP;if(!confirm("Excluir cadastro do prestador? Os históricos não serão apagados e continuarão com os dados congelados."))return;try{await deleteDoc(doc(db,"prestadores",id));prestadores=prestadores.filter(p=>p.id!==id);populateSelects();populateCycle();renderExtract();toast("Cadastro excluído; históricos preservados.")}catch(ex){toast(ex.message,false)}}
+ if(bv){const id=bv.dataset.delV;if(!confirm("Excluir cadastro do veículo? Os históricos não serão apagados."))return;try{await deleteDoc(doc(db,"veiculos",id));veiculos=veiculos.filter(v=>v.id!==id);populateSelects();toast("Veículo excluído; históricos preservados.")}catch(ex){toast(ex.message,false)}}
+ if(br){const id=br.dataset.delR;if(!confirm("Excluir definitivamente este registro de serviço do Firebase? Esta ação não pode ser desfeita. Exporte um backup antes."))return;try{await deleteDoc(doc(db,"rotas",id));rotas=rotas.filter(r=>r.id!==id);renderRoutes();populateCycle();renderExtract();renderLegacy();toast("Registro excluído.")}catch(ex){toast("Erro ao excluir: "+ex.message,false)}}
+});
+$("form-parametros").addEventListener("submit",async e=>{e.preventDefault();if(!isAdmin())return;const cfg={id:"parametros",diaria:n($("cfg-diaria").value),adicional:n($("cfg-adic").value),km:n($("cfg-km").value),aluguel:n($("cfg-aluguel").value),updatedAt:new Date().toISOString()};try{await setDoc(doc(db,"systemConfig","parametros"),cfg);parametros={diaria:cfg.diaria,adicional:cfg.adicional,km:cfg.km,aluguel:cfg.aluguel};setCfgInputs();newCalc();toast("Parâmetros salvos. Afetam somente novos serviços.")}catch(ex){toast("Erro ao salvar parâmetros: "+ex.message,false)}});
+$("filtro-ciclo").addEventListener("change",renderExtract);$("filtro-pessoa").addEventListener("change",renderExtract);
+$("btn-migrar-prestadores").addEventListener("click",async()=>{
+ if(!isAdmin())return;
+ const resumo="Será feita esta vinculação no Firebase:\n\nP0004 → P0001 — Jesse Lima da Silva\nP0005 → P0002 — Anderson Caetano de Souza\nP0003 — Andre Kaique Cloraso (cadastro oficial)\n\nOs três ficarão habilitados como Motorista e Segurança. Os valores financeiros dos serviços não serão recalculados.\n\nAntes de continuar, exporte o backup JSON dos registros antigos. Deseja prosseguir?";
+ if(!confirm(resumo))return;
+ const alvo=[
+  {codigo:"P0001",id:"p_jlima",nome:"Jesse Lima da Silva",apelido:"J. Lima",usuario:"jlima",oldCode:"P0004",oldNames:["Jesse Lima da Silva","Jesse","J. Lima","JLima"]},
+  {codigo:"P0002",id:"p_acaetano",nome:"Anderson Caetano de Souza",apelido:"Anderson",usuario:"acaetano",oldCode:"P0005",oldNames:["Anderson Caetano de Souza","Anderson","A. Caetano"]},
+  {codigo:"P0003",id:"p_akaique",nome:"Andre Kaique Cloraso",apelido:"Kaique",usuario:"akaique",oldCode:null,oldNames:["Andre Kaique Cloraso","Andre Kaique Clorado","Andre Kaique","Kaique"]}
+ ];
+ const norm=v=>String(v||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/[^a-z0-9]/g,"");
+ try{
+  const allP=await loadCollection("prestadores"), oldIdsByCode={};
+  for(const a of alvo){
+   const olds=allP.filter(p=>p.codigo===a.oldCode && a.oldCode);
+   oldIdsByCode[a.oldCode]=olds.map(p=>p.id);
+   const existing=allP.find(p=>p.codigo===a.codigo && !p.mergedInto) || allP.find(p=>p.id===a.id);
+   const canonical={...(existing||{}),id:existing?.id||a.id,codigo:a.codigo,nome:a.nome,apelido:a.apelido,usuario:a.usuario,funcoes:["motorista","seguranca"],updatedAt:new Date().toISOString()};
+   await setDoc(doc(db,"prestadores",canonical.id),canonical);
+   a.targetId=canonical.id;
+   for(const old of olds){
+    if(old.id!==canonical.id)await setDoc(doc(db,"prestadores",old.id),{...old,mergedInto:canonical.id,mergedIntoCodigo:a.codigo,updatedAt:new Date().toISOString()});
+   }
+  }
+  let changed=0;
+  for(const r of rotas){
+   const patch={};
+   for(const a of alvo){
+    const ids=oldIdsByCode[a.oldCode]||[];
+    const names=a.oldNames.map(norm);
+    const motName=norm(r.motoristaNomeSnapshot||r.motorista),segName=norm(r.segurancaNomeSnapshot||r.seguranca);
+    const motMatch=(a.oldCode && (r.motoristaCodigo===a.oldCode || r.motoristaCodigoSnapshot===a.oldCode))||ids.includes(r.motoristaId)||names.includes(motName);
+    const segMatch=(a.oldCode && (r.segurancaCodigo===a.oldCode || r.segurancaCodigoSnapshot===a.oldCode))||ids.includes(r.segurancaId)||names.includes(segName);
+    if(motMatch){patch.motoristaId=a.targetId;patch.motoristaCodigoSnapshot=a.codigo;patch.motoristaNomeSnapshot=a.nome;}
+    if(segMatch){patch.segurancaId=a.targetId;patch.segurancaCodigoSnapshot=a.codigo;patch.segurancaNomeSnapshot=a.nome;}
+   }
+   if(Array.isArray(r.pagamentos)){
+    patch.pagamentos=r.pagamentos.map(pay=>{
+     const a=alvo.find(x=>pay.prestadorCodigo===x.oldCode || (oldIdsByCode[x.oldCode]||[]).includes(pay.prestadorId) || x.oldNames.map(norm).includes(norm(pay.prestadorNome||pay.apelido)));
+     if(!a)return pay;
+     return {...pay,prestadorId:a.targetId,prestadorCodigo:a.codigo,prestadorNome:a.nome};
+    });
+   }
+   if(Object.keys(patch).length){await setDoc(doc(db,"rotas",r.id),patch,{merge:true});Object.assign(r,patch);changed++;}
+  }
+  prestadores=(await loadCollection("prestadores")).filter(p=>!p.mergedInto);
+  // Ensure any original/current records resolve to the official three codes.
+  for(const a of alvo){if(!prestadores.some(p=>p.codigo===a.codigo)){const q={id:a.targetId,codigo:a.codigo,nome:a.nome,apelido:a.apelido,usuario:a.usuario,funcoes:["motorista","seguranca"]};await setDoc(doc(db,"prestadores",q.id),q);prestadores.push(q)}}
+  populateSelects();populateCycle();renderExtract();renderRoutes();renderLegacy();
+  toast(`Migração concluída: ${changed} registro(s) de serviço tiveram seus vínculos atualizados. Valores financeiros preservados.`);
+ }catch(ex){console.error(ex);toast("Falha na migração: "+ex.message,false)}
+});
+$("antigo-veiculo").addEventListener("change",updateLegacyOwnerInfo);
+$("btn-cancelar-edicao-antiga").addEventListener("click",closeLegacyEditor);
+$("btn-cancelar-edicao-antiga-2").addEventListener("click",closeLegacyEditor);
+document.addEventListener("click",e=>{const b=e.target.closest("[data-edit-legacy]");if(b&&isAdmin())openLegacyEditor(b.dataset.editLegacy)});
+$("form-editar-antigo").addEventListener("submit",async e=>{
+ e.preventDefault();if(!isAdmin())return;const id=$("antigo-id").value,r=rotas.find(x=>x.id===id);if(!r){toast("Lançamento antigo não encontrado.",false);return}
+ const mot=getPrestador($("antigo-motorista").value),seg=getPrestador($("antigo-seguranca").value),v=getVeiculo($("antigo-veiculo").value),owner=getPrestador(v?.proprietarioId);
+ if(!mot||!seg||!v||!owner){toast("Selecione motorista, segurança e veículo cadastrado com proprietário definido.",false);return}
+ const money=id=>Math.round(n($(id).value)*100)/100;
+ const vals={motD:money("antigo-mot-diaria"),motA:money("antigo-mot-adic"),segD:money("antigo-seg-diaria"),segA:money("antigo-seg-adic"),rent:money("antigo-aluguel"),kmVal:money("antigo-km-valor"),tollVal:money("antigo-pedagio-valor")};
+ const dt=$("antigo-data").value,cy=ciclo(dt),km=n($("antigo-km").value),toll=money("antigo-pedagio");
+ const makePay=(p,tipo,diaria,adicional,aluguel=0,kmr=0,ped=0)=>({prestadorId:p.id,prestadorCodigo:p.codigo,prestadorNome:p.nome,apelido:p.apelido,tipo,diaria,adicional,aluguel,km:kmr,pedagio:ped,liquido:Math.round((diaria+adicional+aluguel)*100)/100,reembolso:Math.round((kmr+ped)*100)/100,total:Math.round((diaria+adicional+aluguel+kmr+ped)*100)/100,legacy:false,manualLegacyNormalization:true});
+ const source=[makePay(mot,"motorista",vals.motD,vals.motA),makePay(seg,"seguranca",vals.segD,vals.segA),makePay(owner,"veiculo",0,0,vals.rent,vals.kmVal,vals.tollVal)];
+ const grouped=new Map();for(const pay of source){if(!grouped.has(pay.prestadorId))grouped.set(pay.prestadorId,{...pay});else{const q=grouped.get(pay.prestadorId);for(const k of ["diaria","adicional","aluguel","km","pedagio","liquido","reembolso","total"])q[k]=Math.round((n(q[k])+n(pay[k]))*100)/100;q.tipo=q.tipo===pay.tipo?q.tipo:[q.tipo,pay.tipo].filter(Boolean).join("/");q.manualLegacyNormalization=true}}
+ const payments=[...grouped.values()];const start=$("antigo-inicio").value,end=$("antigo-final").value;let mins=0;if(start&&end){const [h1,m1]=start.split(":").map(Number),[h2,m2]=end.split(":").map(Number);mins=(h2*60+m2)-(h1*60+m1);if(mins<0)mins+=1440}
+ const patch={versaoSchema:2,data:dt,horaInicio:start,horaFinal:end,duracao:duration(mins),minutosDuracao:mins,atingiu5h30:(vals.motA>0||vals.segA>0),km,placa:v.placa,modeloVeiculoSnapshot:v.modelo,marcaVeiculoSnapshot:v.marca||"",veiculoId:v.id,proprietarioIdSnapshot:owner.id,proprietarioCodigoSnapshot:owner.codigo,proprietarioNomeSnapshot:owner.nome,motoristaId:mot.id,motoristaCodigoSnapshot:mot.codigo,motoristaNomeSnapshot:mot.nome,motorista:mot.apelido,segurancaId:seg.id,segurancaCodigoSnapshot:seg.codigo,segurancaNomeSnapshot:seg.nome,seguranca:seg.apelido,valDiaria:vals.motD,valAdic:vals.motA,valKm:vals.kmVal,valAluguel:vals.rent,pedagio:toll,pagamentos:payments,cicloId:cy.id,dataPagamento:cy.label,totalRota:payments.reduce((sum,p)=>sum+p.total,0),padronizadoEm:new Date().toISOString(),padronizadoPor:usuarioLogado.username,normalizacaoManual:true};
+ if(!confirm(`Confirma padronizar o lançamento de ${fmtDate(dt)}?\n\nOs dados de origem serão mantidos, mas o registro passará a usar a estrutura nova nos extratos. Os valores financeiros serão exatamente os informados no formulário e não serão recalculados.`))return;
+ const btn=$("btn-salvar-antigo");btn.disabled=true;try{await setDoc(doc(db,"rotas",id),patch,{merge:true});Object.assign(r,patch);closeLegacyEditor();renderRoutes();populateCycle();renderExtract();renderLegacy();toast("Lançamento atualizado para o padrão novo. Valores informados foram congelados.")}catch(ex){console.error(ex);toast("Erro ao atualizar lançamento: "+ex.message,false)}finally{btn.disabled=false}
+});
+$("btn-exportar-antigos").addEventListener("click",()=>{const data=JSON.stringify(rotas.filter(r=>r.versaoSchema!==2),null,2);const blob=new Blob([data],{type:"application/json"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="systemdiarias-registros-antigos-backup.json";a.click();URL.revokeObjectURL(url)});
+</script>
+</body>
+</html>
