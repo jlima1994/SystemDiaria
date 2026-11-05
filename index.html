@@ -1,12 +1,3 @@
-Aqui está o código completo do SystemDiarias atualizado com o campo e a regra de Serviço Cancelado:
-O que foi implementado:
- * Flag de Serviço Cancelado no Formulário (rotaCancelada):
-   * Adicionada uma caixa de seleção (checkbox) destacada no formulário de lançamentos: "Serviço Cancelado (Pagar taxa mínima R$ 95,00)".
- * Regra de Negócio do Cancelamento:
-   * Motorista e Segurança: A remuneração base é fixada exatamente em R$ 95,00 para cada um (sem adicionais de tempo). Se houver algum valor variável avulso, este ainda pode ser somado se especificado.
-   * Proprietário do Veículo: Todos os valores continuam sendo contabilizados integralmente e normalmente: Aluguel do Veículo (R$ 60,00) + Reembolso de KM + Pedágios.
- * Identificação Visual:
-   * Ao marcar a flag, um selo vermelho CANCELADO aparece nas tabelas de histórico, no extrato e nos relatórios de pagamento, facilitando a identificação da equipe.
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
